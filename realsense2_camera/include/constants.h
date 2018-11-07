@@ -35,6 +35,7 @@ namespace realsense2_camera
     const bool ALIGN_DEPTH    = false;
     const bool POINTCLOUD     = false;
     const bool SYNC_FRAMES    = false;
+    const bool FORCE_MAVROS_TRIGGERING = false;
 
     const double DEFAULT_ROS_TIME_OFFSET = 0.0;
 
@@ -70,6 +71,7 @@ namespace realsense2_camera
     const bool ENABLE_FISHEYE = true;
     const bool ENABLE_IMU     = true;
 
+    const std::string INTER_CAM_SYNC_MODE              = "none";
 
     const std::string DEFAULT_BASE_FRAME_ID            = "camera_link";
     const std::string DEFAULT_DEPTH_FRAME_ID           = "camera_depth_frame";

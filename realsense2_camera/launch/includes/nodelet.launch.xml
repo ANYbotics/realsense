@@ -43,6 +43,7 @@
   <arg name="enable_sync"         default="false"/>
   <arg name="align_depth"         default="false"/>
   <arg name="ros_time_offset"     default="0.0"/>
+  <arg name="inter_cam_sync_mode" default="none" />
 
   <node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen"/>
   <node pkg="nodelet" type="nodelet" name="realsense2_camera" args="load realsense2_camera/RealSenseNodeFactory $(arg manager)">
@@ -53,6 +54,7 @@
     <param name="enable_sync"              type="bool" value="$(arg enable_sync)"/>
     <param name="align_depth"              type="bool" value="$(arg align_depth)"/>
     <param name="ros_time_offset"          type="double" value="$(arg ros_time_offset)"/>
+    <param name="inter_cam_sync_mode"      type="str"  value="$(arg inter_cam_sync_mode)"/>
 
     <param name="fisheye_width"            type="int"  value="$(arg fisheye_width)"/>
     <param name="fisheye_height"           type="int"  value="$(arg fisheye_height)"/>
