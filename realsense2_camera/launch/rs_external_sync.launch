@@ -6,15 +6,15 @@
   <arg name="fisheye_height"      default="480"/>
   <arg name="enable_fisheye"      default="true"/>
 
-  <arg name="depth_width"         default="848"/>
+  <arg name="depth_width"         default="640"/>
   <arg name="depth_height"        default="480"/>
   <arg name="enable_depth"        default="true"/>
 
-  <arg name="infra1_width"        default="848"/>
+  <arg name="infra1_width"        default="640"/>
   <arg name="infra1_height"       default="480"/>
   <arg name="enable_infra1"       default="true"/>
 
-  <arg name="infra2_width"        default="848"/>
+  <arg name="infra2_width"        default="640"/>
   <arg name="infra2_height"       default="480"/>
   <arg name="enable_infra2"       default="true"/>
 
