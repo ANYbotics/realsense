@@ -71,5 +71,8 @@ namespace realsense2_camera
         std::unique_ptr<InterfaceRealSenseNode> _realSenseNode;
         rs2::device _device;
         rs2::context _ctx;
+
+        bool _reset_device_startup;
+        double _reset_sleep_time;
     };
 }//end namespace

@@ -22,16 +22,15 @@ These are packages for using Intel RealSense cameras (D400 series and the SR300)
 
 The following instructions support ROS Indigo, on **Ubuntu 14.04**, and ROS Kinetic, on **Ubuntu 16.04**.
 
+#### The simplest way to install on a clean machine is to follow the instructions on the [.travis.yml](https://github.com/intel-ros/realsense/blob/development/.travis.yml) file. It basically summerize the elaborate instructions in the following 3 steps:
+
 ### Step 1: Install the latest Intel&reg; RealSense&trade; SDK 2.0
-- #### Install from [Debian Package](https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md#installing-the-packages)
+- #### Install from [Debian Package](https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md#installing-the-packages) - In that case treat yourself as a developer. Make sure you follow the instructions to also install librealsense2-dev package.
 
 #### OR
-- #### Build from sources by downloading the latest [Intel&reg; RealSense&trade; SDK 2.0](https://github.com/IntelRealSense/librealsense/releases/latest) and follow the instructions under [Linux Installation](https://github.com/IntelRealSense/librealsense/blob/master/doc/installation.md)
+- #### Build from sources by downloading the latest [Intel&reg; RealSense&trade; SDK 2.0](https://github.com/IntelRealSense/librealsense/releases/tag/v2.16.3) and follow the instructions under [Linux Installation](https://github.com/IntelRealSense/librealsense/blob/master/doc/installation.md)
 
 ### Step 2: Install the ROS distribution
-- #### Install [ROS Indigo](http://wiki.ros.org/indigo/Installation/Ubuntu), on Ubuntu 14.04
-
-#### OR
 - #### Install [ROS Kinetic](http://wiki.ros.org/kinetic/Installation/Ubuntu), on Ubuntu 16.04
 
 ### Step 3: Install Intel&reg; RealSense&trade; ROS from Sources
@@ -55,7 +54,12 @@ source ~/.bashrc
 ## Usage Instructions
 
 ### Start the camera node
-To start the camera node in ROS, plug in the camera, then type the following command:
+To start the camera node in ROS, install rgbd_launch:
+
+```bash
+sudo apt-get install ros-kinetic-rgbd-launch
+```
+Then type:
 
 ```bash
 roslaunch realsense2_camera rs_camera.launch
@@ -92,6 +96,35 @@ Here is an example of how to start the camera node and streaming with two camera
 roslaunch realsense2_camera rs_multiple_devices.launch serial_no_camera1:=<serial number of the first camera> serial_no_camera2:=<serial number of the second camera>
 ```
 The camera serial number should be provided to `serial_no_camera1` and `serial_no_camera2` parameters. One way to get the serial number is from the [rs-enumerate-devices](https://github.com/IntelRealSense/librealsense/blob/58d99783cc2781b1026eeed959aa3f7b562b20ca/tools/enumerate-devices/readme.md) tool.
+
+Another war of obtaining the serial number is connecting the camera alone, running 
+```bash
+roslaunch realsense2_camera rs_camera.launch
+```
+and looking for the serial number in the log printed to screen under "[INFO][...]Device Serial No:".
+
+Another way to use multiple cameras is running each from a different terminal. Make sure you set a different namespace for each camera using the "camera" argument:
+
+```bash
+roslaunch realsense2_camera rs_camera.launch camera:=cam_1 serial_no:=<serial number of the first camera>
+roslaunch realsense2_camera rs_camera.launch camera:=cam_2 serial_no:=<serial number of the second camera>
+...
+
+```
+### Enabling post processing filters.
+realsense2_camera includes some built in post processing filters:<br>
+colorizer - creates an RGB image instead of depth image. Used to visualize the depth image.<br>
+spatial - filter the depth image spatially.<br>
+temporal - filter the depth image temporally.<br>
+pointcloud - it is now possible to enable point cloud with the same command as any other post processing filter.<br>
+
+The colorizer filter replaces the image in the topic: /<camera>/depth/image_rect_raw.
+The spatial and temporal filters affect the depth image and all that is derived from it, i.e. pointcloud and colorizer.
+
+to activate the filters, use the argument "filters" and deperate them with a comma:
+```bash
+roslaunch realsense2_camera rs_camera.launch filters:=temporal,spatial,pointcloud
+```
 
 
 ## Packages using RealSense ROS Camera

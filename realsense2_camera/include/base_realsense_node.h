@@ -17,13 +17,14 @@ namespace realsense2_camera
 {
     enum base_depth_param{
         base_depth_gain = 1,
-        base_depth_enable_auto_exposure,
         base_depth_visual_preset,
         base_depth_frames_queue_size,
         base_depth_error_polling_enabled,
         base_depth_output_trigger_enabled,
         base_depth_units,
+        base_sensors_enabled,
         base_JSON_file_path,
+        base_depth_enable_auto_exposure = 100,
         base_depth_count
     };
 
@@ -59,6 +60,27 @@ namespace realsense2_camera
     };
     typedef std::pair<image_transport::Publisher, std::shared_ptr<FrequencyDiagnostics>> ImagePublisherWithFrequencyDiagnostics;
 
+    class NamedFilter
+    {
+        public:
+            std::string _name;
+            std::shared_ptr<rs2::processing_block> _filter;
+
+        public:
+            NamedFilter(std::string name, std::shared_ptr<rs2::processing_block> filter):
+            _name(name), _filter(filter)
+            {}
+    };
+
+	class PipelineSyncer : public rs2::asynchronous_syncer
+	{
+	public: 
+		void operator()(rs2::frame f) const
+		{
+			invoke(std::move(f));
+		}
+	};
+
     class BaseRealSenseNode : public InterfaceRealSenseNode
     {
     public:
@@ -67,6 +89,7 @@ namespace realsense2_camera
                           rs2::device dev,
                           const std::string& serial_no);
 
+        void toggleSensors(bool enabled);
         virtual void publishTopics() override;
         virtual void registerDynamicReconfigCb() override;
         virtual ~BaseRealSenseNode() {}
@@ -93,16 +116,19 @@ namespace realsense2_camera
         void getParameters();
         void setupDevice();
         void setupPublishers();
+        void enable_devices();
+        void setupFilters();
         void setupStreams();
         void updateStreamCalibData(const rs2::video_stream_profile& video_profile);
-        tf::Quaternion rotationMatrixToQuaternion(const float rotation[3]) const;
+        tf::Quaternion rotationMatrixToQuaternion(const float rotation[9]) const;
         void publish_static_tf(const ros::Time& t,
                                const float3& trans,
                                const quaternion& q,
                                const std::string& from,
                                const std::string& to);
         void publishStaticTransforms();
-        void publishRgbToDepthPCTopic(const ros::Time& t, const std::map<stream_index_pair, bool>& is_frame_arrived);
+        void publishPointCloud(rs2::points f, const ros::Time& t, const rs2::frameset& frameset);
+        rs2::frame get_frame(const rs2::frameset& frameset, const rs2_stream stream, const int index = 0);
         Extrinsics rsExtrinsicsToMsg(const rs2_extrinsics& extrinsics, const std::string& frame_id) const;
         rs2_extrinsics getRsExtrinsics(const stream_index_pair& from_stream, const stream_index_pair& to_stream);
 
@@ -122,14 +148,8 @@ namespace realsense2_camera
         void updateIsFrameArrived(std::map<stream_index_pair, bool>& is_frame_arrived,
                                   rs2_stream stream_type, int stream_index);
 
-        void publishAlignedDepthToOthers(rs2::frame depth_frame, const std::vector<rs2::frame>& frames, const ros::Time& t);
-
-        void alignFrame(const rs2_intrinsics& from_intrin,
-                        const rs2_intrinsics& other_intrin,
-                        rs2::frame from_image,
-                        uint32_t output_image_bytes_per_pixel,
-                        const rs2_extrinsics& from_to_other,
-                        std::vector<uint8_t>& out_vec);
+        void publishAlignedDepthToOthers(rs2::frameset frames, const ros::Time& t);
+        rs2_stream rs2_string_to_stream(std::string str);
 
         std::string _json_file_path;
         std::string _serial_no;
@@ -169,7 +189,12 @@ namespace realsense2_camera
         bool _sync_frames;
         bool _pointcloud;
         double _ros_time_offset = 0.0;
-        rs2::asynchronous_syncer _syncer;
+        std::string _filters_str;
+        stream_index_pair _pointcloud_texture;
+        PipelineSyncer _syncer;
+        std::vector<NamedFilter> _filters;
+        // Declare pointcloud object, for calculating pointclouds and texture mappings
+        // rs2::pointcloud _pc_filter;
 
         std::map<stream_index_pair, cv::Mat> _depth_aligned_image;
         std::map<stream_index_pair, std::string> _depth_aligned_encoding;

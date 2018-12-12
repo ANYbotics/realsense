@@ -91,12 +91,6 @@ void RS415Node::setParam(rs415_paramsConfig &config, rs415_param param)
         static const auto rs415_depth_exposure_factor = 20;
         ROS_DEBUG_STREAM("rs415_depth_exposure: " << config.rs415_depth_exposure * rs415_depth_exposure_factor);
         _sensors[DEPTH].set_option(rs2_option::RS2_OPTION_EXPOSURE, config.rs415_depth_exposure * rs415_depth_exposure_factor);
-
-        // Workaround, as the depth auto exposure is not correctly initialized.
-        if (config.rs415_depth_enable_auto_exposure)
-        {
-            BaseD400Node::setParam(config, base_depth_enable_auto_exposure);
-        }
     }
         break;
     case rs415_depth_laser_power:
@@ -122,18 +116,27 @@ void RS415Node::setParam(rs415_paramsConfig &config, rs415_param param)
 
 void RS415Node::callback(rs415_paramsConfig &config, uint32_t level)
 {
+    ROS_INFO_STREAM("Start updating dynamic parameters...");
     ROS_DEBUG_STREAM("RS415Node - Level: " << level);
 
     if (set_default_dynamic_reconfig_values == level)
     {
-        for (int i = 1 ; i < rs415_param_count ; ++i)
+        for (int i = 1 ; i < base_depth_count ; ++i)
         {
             ROS_DEBUG_STREAM("rs415_param = " << i);
-            setParam(config ,(rs415_param)i);
+            try
+            {
+                setParam(config ,(rs415_param)i);
+            }
+            catch(...)
+            {
+                ROS_ERROR_STREAM("Failed. Skip initialization of parameter " << (rs415_param)i);
+            }
         }
     }
     else
     {
         setParam(config, (rs415_param)level);
     }
+    ROS_INFO_STREAM("Done updating dynamic parameters...");
 }
