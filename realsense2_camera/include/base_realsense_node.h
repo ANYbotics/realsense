@@ -183,6 +183,10 @@ namespace realsense2_camera
 
         std::map<stream_index_pair, bool> _is_frame_arrived;
         const std::string _namespace;
+
+
+        uint32_t image_counter_;
+
     };//end class
 
     class BaseD400Node : public BaseRealSenseNode

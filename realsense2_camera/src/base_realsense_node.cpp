@@ -18,7 +18,8 @@ BaseRealSenseNode::BaseRealSenseNode(ros::NodeHandle& nodeHandle,
     _pnh(privateNodeHandle), _json_file_path(""),
     _serial_no(serial_no), _base_frame_id(""),
     _intialize_time_base(false),
-    _namespace(getNamespaceStr())
+    _namespace(getNamespaceStr()),
+    image_counter_(1)
 {
     // Types for depth stream
     _is_frame_arrived[DEPTH] = false;
@@ -1252,7 +1253,9 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
         img->step = width * bpp;
         img->header.frame_id = optical_frame_id.at(stream);
         img->header.stamp = t;
-        img->header.seq = f.get_frame_number();
+        img->header.seq = image_counter_;//f.get_frame_number();
+
+        image_counter_++; // Count starts at 1
 
         auto& cam_info = camera_info.at(stream);
         cam_info.header.stamp = img->header.stamp;
