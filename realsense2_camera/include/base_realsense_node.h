@@ -28,6 +28,14 @@ namespace realsense2_camera
         base_depth_count
     };
 
+    // not using enum class here for consistence with realsense code.
+    enum inter_cam_sync_mode{
+      inter_cam_sync_default = 0,
+      inter_cam_sync_master = 1,
+      inter_cam_sync_slave = 2,
+      inter_cam_sync_none = -1
+    };
+
     struct FrequencyDiagnostics
     {
       FrequencyDiagnostics(double expected_frequency, std::string name, std::string hardware_id) :
@@ -172,6 +180,7 @@ namespace realsense2_camera
         std::map<stream_index_pair, sensor_msgs::CameraInfo> _camera_info;
         bool _intialize_time_base;
         double _camera_time_base;
+        inter_cam_sync_mode _inter_cam_sync_mode;
         std::map<stream_index_pair, std::vector<rs2::stream_profile>> _enabled_profiles;
 
         ros::Publisher _pointcloud_publisher;
@@ -199,6 +208,10 @@ namespace realsense2_camera
 
         std::map<stream_index_pair, bool> _is_frame_arrived;
         const std::string _namespace;
+
+
+        uint32_t image_counter_;
+
     };//end class
 
     class BaseD400Node : public BaseRealSenseNode

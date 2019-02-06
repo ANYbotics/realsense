@@ -70,6 +70,7 @@
   <arg name="filters"             default=""/>
 
   <arg name="ros_time_offset"     default="0.0"/>
+  <arg name="inter_cam_sync_mode" default="none" />
 
   <arg name="reset_device_startup"      default="false"/>
   <arg name="reset_sleep_time"          default="0.0"/>
@@ -86,6 +87,7 @@
     <param name="enable_sync"              type="bool" value="$(arg enable_sync)"/>
     <param name="align_depth"              type="bool" value="$(arg align_depth)"/>
     <param name="ros_time_offset"          type="double" value="$(arg ros_time_offset)"/>
+    <param name="inter_cam_sync_mode"      type="str"  value="$(arg inter_cam_sync_mode)"/>
 
     <param name="reset_device_startup"     type="bool" value="$(arg reset_device_startup)"/>
     <param name="reset_sleep_time"         type="double" value="$(arg reset_sleep_time)"/>

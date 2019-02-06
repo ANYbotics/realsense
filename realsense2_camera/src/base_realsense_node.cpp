@@ -21,7 +21,8 @@ BaseRealSenseNode::BaseRealSenseNode(ros::NodeHandle& nodeHandle,
     _pnh(privateNodeHandle), _json_file_path(""),
     _serial_no(serial_no), _base_frame_id(""),
     _intialize_time_base(false),
-    _namespace(getNamespaceStr())
+    _namespace(getNamespaceStr()),
+    image_counter_(1)
 {
     // Types for depth stream
     _is_frame_arrived[DEPTH] = false;
@@ -205,6 +206,26 @@ void BaseRealSenseNode::getParameters()
     _pnh.param("aligned_depth_to_infra1_frame_id",  _depth_aligned_frame_id[INFRA1],  DEFAULT_ALIGNED_DEPTH_TO_INFRA1_FRAME_ID);
     _pnh.param("aligned_depth_to_infra2_frame_id",  _depth_aligned_frame_id[INFRA2],  DEFAULT_ALIGNED_DEPTH_TO_INFRA2_FRAME_ID);
     _pnh.param("aligned_depth_to_fisheye_frame_id", _depth_aligned_frame_id[FISHEYE], DEFAULT_ALIGNED_DEPTH_TO_FISHEYE_FRAME_ID);
+
+    std::string inter_cam_sync_mode_param;
+    _pnh.param("inter_cam_sync_mode", inter_cam_sync_mode_param, INTER_CAM_SYNC_MODE);
+    std::transform(inter_cam_sync_mode_param.begin(), inter_cam_sync_mode_param.end(),
+                   inter_cam_sync_mode_param.begin(), ::tolower);
+    // note: added a "none" mode, as not all sensor types/firmware versions allow setting of the sync mode.
+    //       Use "none" if nothing is specified or an error occurs.
+    //       Default (mode = 0) here refers to the default sync mode as per Intel whitepaper,
+    //       which corresponds to master mode but no trigger output on Pin 5.
+    //       Master (mode = 1) activates trigger signal output on Pin 5.
+    //       Slave (mode = 2) causes the realsense to listen to a trigger signal on pin 5.
+    if(inter_cam_sync_mode_param == "default"){ _inter_cam_sync_mode = inter_cam_sync_default; }
+    else if(inter_cam_sync_mode_param == "master") { _inter_cam_sync_mode = inter_cam_sync_master; }
+    else if(inter_cam_sync_mode_param == "slave"){ _inter_cam_sync_mode = inter_cam_sync_slave; }
+    else if(inter_cam_sync_mode_param == "none") { _inter_cam_sync_mode = inter_cam_sync_none; }
+    else
+    {
+        _inter_cam_sync_mode = inter_cam_sync_none;
+        ROS_WARN_STREAM("Invalid inter cam sync mode (" << inter_cam_sync_mode_param << ")! Not using inter cam sync mode.");
+    }
 }
 
 void BaseRealSenseNode::setupDevice()
@@ -305,6 +326,14 @@ void BaseRealSenseNode::setupDevice()
                 }
             }
         }
+
+        // set cam sync mode
+        if(_inter_cam_sync_mode != inter_cam_sync_none)
+        {
+            _sensors[DEPTH].set_option(RS2_OPTION_INTER_CAM_SYNC_MODE, _inter_cam_sync_mode);
+            ROS_INFO_STREAM("Inter cam sync mode set to " << _inter_cam_sync_mode);
+        }
+
     }
     catch(const std::exception& ex)
     {
@@ -1367,8 +1396,9 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
     ++(seq[stream]);
     auto& info_publisher = info_publishers.at(stream);
     auto& image_publisher = image_publishers.at(stream);
-    if(0 != info_publisher.getNumSubscribers() ||
-       0 != image_publisher.first.getNumSubscribers())
+    bool has_subscribers = info_publisher.getNumSubscribers() != 0 ||image_publisher.first.getNumSubscribers() != 0;
+
+    if(has_subscribers)
     {
         sensor_msgs::ImagePtr img;
         img = cv_bridge::CvImage(std_msgs::Header(), encoding.at(stream), image).toImageMsg();
@@ -1378,11 +1408,21 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
         img->step = width * bpp;
         img->header.frame_id = optical_frame_id.at(stream);
         img->header.stamp = t;
-        img->header.seq = seq[stream];
+        img->header.seq = image_counter_;//f.get_frame_number();
+
+        image_counter_++; // Count starts at 1
 
         auto& cam_info = camera_info.at(stream);
-        cam_info.header.stamp = t;
-        cam_info.header.seq = seq[stream];
+        cam_info.header.stamp = img->header.stamp;
+        cam_info.header.seq = img->header.seq;
+
+        // if exposure is available, TODO
+        double exposure = f.supports_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE) ?
+                            static_cast<double>(f.get_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE)) : 0.0;
+
+        ROS_DEBUG("Actual Exposure: %f", exposure);
+
+        // Directly publish
         info_publisher.publish(cam_info);
 
         image_publisher.first.publish(img);
