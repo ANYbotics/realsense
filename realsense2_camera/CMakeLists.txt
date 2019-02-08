@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
     tf
     dynamic_reconfigure
     diagnostic_updater
+    sensor_sync
     )
 
 if(BUILD_WITH_OPENMP)
