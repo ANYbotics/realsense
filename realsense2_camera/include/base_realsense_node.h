@@ -11,6 +11,7 @@
 
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_updater/update_functions.h>
+#include <sensor_sync/IntStamped.h>
 
 
 namespace realsense2_camera
@@ -184,10 +185,13 @@ namespace realsense2_camera
         std::map<stream_index_pair, std::vector<rs2::stream_profile>> _enabled_profiles;
 
         ros::Publisher _pointcloud_publisher;
+        ros::Publisher _counter_publisher;
         ros::Time _ros_time_base;
         bool _align_depth;
         bool _sync_frames;
         bool _pointcloud;
+        bool _counter_enabled;
+        bool _send_counter;
         double _ros_time_offset = 0.0;
         std::string _filters_str;
         stream_index_pair _pointcloud_texture;
@@ -210,7 +214,7 @@ namespace realsense2_camera
         const std::string _namespace;
 
 
-        uint32_t image_counter_;
+        uint32_t _image_counter;
 
     };//end class
 
