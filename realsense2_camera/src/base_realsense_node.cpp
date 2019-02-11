@@ -367,7 +367,7 @@ void BaseRealSenseNode::setupPublishers()
         {
 
             if(!_counter_enabled){
-                _counter_publisher = _node_handle.advertise<sensor_sync::IntStamped>("/depth/counter", 1);
+                _counter_publisher = _node_handle.advertise<timestamp_corrector_msgs::IntStamped>("/depth/counter", 1);
                 _counter_enabled = true;
             }
 
@@ -792,7 +792,7 @@ void BaseRealSenseNode::setupStreams()
                 }
 
                 if(_counter_enabled && _send_counter){
-                    sensor_sync::IntStamped image_counter_msg;
+                    timestamp_corrector_msgs::IntStamped image_counter_msg;
 
                     image_counter_msg.header.stamp = t;
                     image_counter_msg.counter = _image_counter;
