@@ -47,6 +47,13 @@ namespace realsense2_camera
     {
         ROS_INFO_STREAM(strsignal(signum) << " Signal is received! Terminating RealSense Node...");
         ros::shutdown();
+        rs2::context ctx_;
+        auto list_=ctx_.query_devices();
+        rs2::device dev_;
+        if(list_.size()>0){
+            dev_ = list_[0];
+        }
+        dev_.hardware_reset();
         exit(signum);
     }
 
