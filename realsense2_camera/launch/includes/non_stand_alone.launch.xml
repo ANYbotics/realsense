@@ -3,7 +3,7 @@
 
 
 <launch>
-  <arg name="nodelet_manager"             default="realsense2_camera_manager"/>
+  <arg name="nodelet_manager"     default="realsense2_camera_manager"/>
   <arg name="serial_no"           default=""/>
   <arg name="tf_prefix"           default=""/>
   <arg name="json_file_path"      default=""/>
@@ -79,7 +79,7 @@
   <arg name="reset_device_startup"      default="false"/>
   <arg name="reset_sleep_time"          default="0.0"/>
 
-  <node pkg="nodelet" type="nodelet" name="realsense2_camera" args="load realsense2_camera/RealSenseNodeFactory $(arg nodelet_manager)">
+  <node pkg="nodelet" type="nodelet" name="realsense2_camera" args="load realsense2_camera/RealSenseNodeFactory /$(arg nodelet_manager)">
     <param name="serial_no"                type="str"  value="$(arg serial_no)"/>
     <param name="json_file_path"           type="str"  value="$(arg json_file_path)"/>
     <param name="rosbag_filename"          type="str"  value="$(arg rosbag_filename)"/>
