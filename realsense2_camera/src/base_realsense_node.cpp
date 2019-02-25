@@ -368,7 +368,7 @@ void BaseRealSenseNode::setupPublishers()
         {
 
             if(!_counter_enabled){
-                _counter_publisher = _node_handle.advertise<timestamp_corrector_msgs::IntStamped>("depth/counter", 1);
+                _counter_publisher = _node_handle.advertise<timestamp_corrector_msgs::SensorTimeInfo>("depth/time_info", 1);
                 _counter_enabled = true;
             }
 
@@ -650,7 +650,7 @@ void BaseRealSenseNode::setupStreams()
 
                 ros::Time t;
                 if (_sync_frames)
-                    t = ros::Time::now() + ros::Duration(_ros_time_offset);
+                    t = ros::Time::now();// + ros::Duration(_ros_time_offset);
                 else
                     t = ros::Time(_ros_time_base.toSec()+ (/*ms*/ frame.get_timestamp() - /*ms*/ _camera_time_base) / /*ms to seconds*/ 1000);
 
@@ -794,12 +794,16 @@ void BaseRealSenseNode::setupStreams()
                 }
 
                 if(_counter_enabled && _send_counter){
-                    timestamp_corrector_msgs::IntStamped image_counter_msg;
+                    timestamp_corrector_msgs::SensorTimeInfo image_time_info_msg;
 
-                    image_counter_msg.header.stamp = t;
-                    image_counter_msg.counter = _image_counter; //frame.get_frame_number() & 0xffffffff;
-                    _counter_publisher.publish(image_counter_msg);
-                    ROS_DEBUG("Publishing Counter %d at time %lu", image_counter_msg.counter, t.toNSec());
+                    unsigned long long exposure_time = frame.supports_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE) ?
+                                        static_cast<unsigned long long>(frame.get_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE)) : 0.0;
+
+                    image_time_info_msg.header.stamp = t;
+                    image_time_info_msg.counter = _image_counter; // frame.get_frame_number() & 0xffffffff;
+                    image_time_info_msg.exposure_time = exposure_time;
+                    _counter_publisher.publish(image_time_info_msg);
+                    //ROS_INFO("Publishing Counter %d at time %lu", image_time_info_msg.counter, t.toNSec());
                     _image_counter++;
                     _send_counter = false;
                 }
@@ -1440,8 +1444,6 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
         // if exposure is available, TODO
         double exposure = f.supports_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE) ?
                             static_cast<double>(f.get_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE)) : 0.0;
-
-        ROS_DEBUG("Actual Exposure: %f", exposure);
 
         // Directly publish
         info_publisher.publish(cam_info);

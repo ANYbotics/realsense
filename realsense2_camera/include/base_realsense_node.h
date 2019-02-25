@@ -11,7 +11,7 @@
 
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_updater/update_functions.h>
-#include <timestamp_corrector_msgs/IntStamped.h>
+#include <timestamp_corrector_msgs/SensorTimeInfo.h>
 
 
 namespace realsense2_camera
