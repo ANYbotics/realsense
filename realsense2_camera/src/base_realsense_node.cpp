@@ -366,16 +366,17 @@ void BaseRealSenseNode::setupPublishers()
     {
         if (_enable[stream])
         {
+
+            if(!_counter_enabled){
+                _counter_publisher = _node_handle.advertise<timestamp_corrector_msgs::IntStamped>("depth/counter", 1);
+                _counter_enabled = true;
+            }
+
             std::stringstream image_raw, camera_info;
             bool rectified_image = false;
             if (stream == DEPTH || stream == INFRA1 || stream == INFRA2){
                 rectified_image = true;
-                if(!_counter_enabled){
-                    _counter_publisher = _node_handle.advertise<timestamp_corrector_msgs::IntStamped>("depth/counter", 1);
-                    _counter_enabled = true;
-                }
             }
-                
 
             image_raw << _stream_name[stream] << "/image_" << ((rectified_image)?"rect_":"") << "raw";
             camera_info << _stream_name[stream] << "/camera_info";
@@ -796,9 +797,9 @@ void BaseRealSenseNode::setupStreams()
                     timestamp_corrector_msgs::IntStamped image_counter_msg;
 
                     image_counter_msg.header.stamp = t;
-                    image_counter_msg.counter = _image_counter;
+                    image_counter_msg.counter = _image_counter; //frame.get_frame_number() & 0xffffffff;
                     _counter_publisher.publish(image_counter_msg);
-                    ROS_DEBUG("Publishing Counter %d at time %lu", _image_counter, t.toNSec());
+                    ROS_DEBUG("Publishing Counter %d at time %lu", image_counter_msg.counter, t.toNSec());
                     _image_counter++;
                     _send_counter = false;
                 }
