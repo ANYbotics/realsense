@@ -185,13 +185,13 @@ namespace realsense2_camera
         std::map<stream_index_pair, std::vector<rs2::stream_profile>> _enabled_profiles;
 
         ros::Publisher _pointcloud_publisher;
-        ros::Publisher _counter_publisher;
+        ros::Publisher _time_info_publisher;
         ros::Time _ros_time_base;
         bool _align_depth;
         bool _sync_frames;
         bool _pointcloud;
-        bool _counter_enabled;
-        bool _send_counter;
+        bool _info_publisher_enabled;
+        bool _send_info;
         double _ros_time_offset = 0.0;
         std::string _filters_str;
         stream_index_pair _pointcloud_texture;
@@ -212,7 +212,6 @@ namespace realsense2_camera
 
         std::map<stream_index_pair, bool> _is_frame_arrived;
         const std::string _namespace;
-
 
         uint32_t _image_counter;
 

@@ -35,7 +35,6 @@ namespace realsense2_camera
     const bool ALIGN_DEPTH    = false;
     const bool POINTCLOUD     = false;
     const bool SYNC_FRAMES    = false;
-    const bool FORCE_MAVROS_TRIGGERING = false;
 
     const double DEFAULT_ROS_TIME_OFFSET = 0.0;
     const bool DEFAULT_RESET_DEVICE_STARTUP = true;

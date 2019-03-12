@@ -23,7 +23,7 @@ BaseRealSenseNode::BaseRealSenseNode(ros::NodeHandle& nodeHandle,
     _intialize_time_base(false),
     _namespace(getNamespaceStr()),
     _image_counter(0),
-    _counter_enabled(false)
+    _info_publisher_enabled(false)
 {
     // Types for depth stream
     _is_frame_arrived[DEPTH] = false;
@@ -367,16 +367,15 @@ void BaseRealSenseNode::setupPublishers()
         if (_enable[stream])
         {
 
-            if(!_counter_enabled){
-                _counter_publisher = _node_handle.advertise<timestamp_corrector_msgs::SensorTimeInfo>("depth/time_info", 1);
-                _counter_enabled = true;
+            if(!_info_publisher_enabled){
+                _time_info_publisher = _node_handle.advertise<timestamp_corrector_msgs::SensorTimeInfo>("depth/time_info", 1);
+                _info_publisher_enabled = true;
             }
 
             std::stringstream image_raw, camera_info;
             bool rectified_image = false;
-            if (stream == DEPTH || stream == INFRA1 || stream == INFRA2){
+            if (stream == DEPTH || stream == INFRA1 || stream == INFRA2)
                 rectified_image = true;
-            }
 
             image_raw << _stream_name[stream] << "/image_" << ((rectified_image)?"rect_":"") << "raw";
             camera_info << _stream_name[stream] << "/camera_info";
@@ -650,7 +649,7 @@ void BaseRealSenseNode::setupStreams()
 
                 ros::Time t;
                 if (_sync_frames)
-                    t = ros::Time::now();// + ros::Duration(_ros_time_offset);
+                    t = ros::Time::now() + ros::Duration(_ros_time_offset);
                 else
                     t = ros::Time(_ros_time_base.toSec()+ (/*ms*/ frame.get_timestamp() - /*ms*/ _camera_time_base) / /*ms to seconds*/ 1000);
 
@@ -793,7 +792,7 @@ void BaseRealSenseNode::setupStreams()
                                  _encoding);
                 }
 
-                if(_counter_enabled && _send_counter){
+                if(_info_publisher_enabled && _send_info){
                     timestamp_corrector_msgs::SensorTimeInfo image_time_info_msg;
 
                     unsigned long long exposure_time = frame.supports_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE) ?
@@ -802,10 +801,10 @@ void BaseRealSenseNode::setupStreams()
                     image_time_info_msg.header.stamp = t;
                     image_time_info_msg.counter = _image_counter; // frame.get_frame_number() & 0xffffffff;
                     image_time_info_msg.exposure_time = exposure_time;
-                    _counter_publisher.publish(image_time_info_msg);
+                    _time_info_publisher.publish(image_time_info_msg);
                     //ROS_INFO("Publishing Counter %d at time %lu", image_time_info_msg.counter, t.toNSec());
                     _image_counter++;
-                    _send_counter = false;
+                    _send_info = false;
                 }
 
 
@@ -1334,7 +1333,7 @@ void BaseRealSenseNode::publishPointCloud(rs2::points pc, const ros::Time& t, co
     }
     _pointcloud_publisher.publish(msg_pointcloud);
 
-    _send_counter = true;
+    _send_info = true;
 }
 
 
@@ -1423,9 +1422,9 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
     ++(seq[stream]);
     auto& info_publisher = info_publishers.at(stream);
     auto& image_publisher = image_publishers.at(stream);
-    bool has_subscribers = info_publisher.getNumSubscribers() != 0 ||image_publisher.first.getNumSubscribers() != 0;
 
-    if(has_subscribers)
+    if(0 != info_publisher.getNumSubscribers() ||
+       0 != image_publisher.first.getNumSubscribers())
     {
         sensor_msgs::ImagePtr img;
         img = cv_bridge::CvImage(std_msgs::Header(), encoding.at(stream), image).toImageMsg();
@@ -1435,11 +1434,11 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
         img->step = width * bpp;
         img->header.frame_id = optical_frame_id.at(stream);
         img->header.stamp = t;
-        img->header.seq = f.get_frame_number();
+        img->header.seq = seq[stream];
 
         auto& cam_info = camera_info.at(stream);
-        cam_info.header.stamp = img->header.stamp;
-        cam_info.header.seq = img->header.seq;
+        cam_info.header.stamp = t;
+        cam_info.header.seq = seq[stream];
 
         // if exposure is available, TODO
         double exposure = f.supports_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE) ?
@@ -1453,7 +1452,7 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
         ROS_DEBUG("%s stream published", rs2_stream_to_string(f.get_profile().stream_type()));
 
         // We published at least one frame
-        _send_counter = true;
+        _send_info = true;
     }
 }
 
