@@ -4,6 +4,9 @@ project(realsense2_camera)
 option(BUILD_WITH_OPENMP "Use OpenMP" OFF)
 option(SET_USER_BREAK_AT_STARTUP "Set user wait point in startup (for debug)" OFF)
 
+# Disable OPENMP, see issue 1105 of librealsense2
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DBUILD_WITH_OPENMP=false")
+
 find_package(catkin REQUIRED COMPONENTS
     message_generation
     roscpp
@@ -18,6 +21,8 @@ find_package(catkin REQUIRED COMPONENTS
     diagnostic_updater
     timestamp_corrector_msgs
     )
+
+find_package( PCL REQUIRED )
 
 if(BUILD_WITH_OPENMP)
     find_package(OpenMP)
@@ -57,8 +62,12 @@ generate_messages(
 
 include_directories(
     include
+    ${PCL_INCLUDE_DIRS}
     ${catkin_INCLUDE_DIRS}
     )
+
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 # Generate dynamic reconfigure options from .cfg files
 generate_dynamic_reconfigure_options(
@@ -103,6 +112,7 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     ${catkin_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
+    ${PCL_LIBRARIES}
     )
 
 # Install nodelet library

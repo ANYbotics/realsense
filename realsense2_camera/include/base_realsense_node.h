@@ -13,9 +13,17 @@
 #include <diagnostic_updater/update_functions.h>
 #include <timestamp_corrector_msgs/SensorTimeInfo.h>
 
+// PCL
+#include <pcl/point_types.h>
+#include <pcl/filters/passthrough.h>
+#include <pcl_conversions/pcl_conversions.h>
+
 
 namespace realsense2_camera
 {
+
+    using pcl_ptr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
+
     enum base_depth_param{
         base_depth_gain = 1,
         base_depth_visual_preset,
@@ -129,6 +137,8 @@ namespace realsense2_camera
                                const std::string& to);
         void publishStaticTransforms();
         void publishPointCloud(rs2::points f, const ros::Time& t, const rs2::frameset& frameset);
+        void publishPointCloudEfficient(const rs2::points& pc, const ros::Time& t, const rs2::frameset& frameset);
+        pcl_ptr points_to_pcl(const rs2::points& points);
         rs2::frame get_frame(const rs2::frameset& frameset, const rs2_stream stream, const int index = 0);
         Extrinsics rsExtrinsicsToMsg(const rs2_extrinsics& extrinsics, const std::string& frame_id) const;
         rs2_extrinsics getRsExtrinsics(const stream_index_pair& from_stream, const stream_index_pair& to_stream);
@@ -214,6 +224,8 @@ namespace realsense2_camera
         const std::string _namespace;
 
         uint32_t _image_counter;
+        bool _efficient_pointcloud;
+        float _pc_z_cut_off;
 
     };//end class
 

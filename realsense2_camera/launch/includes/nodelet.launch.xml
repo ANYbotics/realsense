@@ -75,6 +75,9 @@
   <arg name="reset_device_startup"      default="false"/>
   <arg name="reset_sleep_time"          default="0.0"/>
 
+  <arg name="improve_performance"   default="false"/>
+  <arg name="z_cut_off"             default="1.5"/>
+
   <node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen"/>
   <node pkg="nodelet" type="nodelet" name="realsense2_camera" args="load realsense2_camera/RealSenseNodeFactory $(arg manager)">
     <param name="serial_no"                type="str"  value="$(arg serial_no)"/>
@@ -140,6 +143,9 @@
     <param name="aligned_depth_to_infra2_frame_id"  type="str"  value="$(arg aligned_depth_to_infra2_frame_id)"/>
     <param name="aligned_depth_to_fisheye_frame_id" type="str"  value="$(arg aligned_depth_to_fisheye_frame_id)"/>
     
+    <param name="improve_performance" type="bool"  value="$(arg improve_performance)"/>
+    <param name="z_cut_off" type="double"           value="$(arg z_cut_off)"/>
+
     <param name="filters" type="str"  value="$(arg filters)"/>
   </node>
 </launch>

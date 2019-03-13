@@ -227,6 +227,9 @@ void BaseRealSenseNode::getParameters()
         _inter_cam_sync_mode = inter_cam_sync_none;
         ROS_WARN_STREAM("Invalid inter cam sync mode (" << inter_cam_sync_mode_param << ")! Not using inter cam sync mode.");
     }
+
+    _pnh.param("improve_performance", _efficient_pointcloud, false);
+    _pnh.param("z_cut_off", _pc_z_cut_off, 1.5f);
 }
 
 void BaseRealSenseNode::setupDevice()
@@ -750,7 +753,11 @@ void BaseRealSenseNode::setupStreams()
                             if (0 != _pointcloud_publisher.getNumSubscribers())
                             {
                                 ROS_DEBUG("Publish pointscloud");
-                                publishPointCloud(f.as<rs2::points>(), t, frameset);
+                                if(_efficient_pointcloud){
+                                    publishPointCloudEfficient(f.as<rs2::points>(), t, frameset);
+                                } else{
+                                    publishPointCloud(f.as<rs2::points>(), t, frameset);
+                                }
                             }
                             continue;
                         }
@@ -1336,6 +1343,55 @@ void BaseRealSenseNode::publishPointCloud(rs2::points pc, const ros::Time& t, co
     _send_info = true;
 }
 
+pcl_ptr BaseRealSenseNode::points_to_pcl(const rs2::points& points)
+{
+    pcl_ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+
+    auto sp = points.get_profile().as<rs2::video_stream_profile>();
+    cloud->width = sp.width();
+    cloud->height = sp.height();
+    cloud->is_dense = false;
+    cloud->points.resize(points.size());
+    auto ptr = points.get_vertices();
+    for (auto& p : cloud->points)
+    {
+        p.x = ptr->x;
+        p.y = ptr->y;
+        p.z = ptr->z;
+        ptr++;
+    }
+
+    return cloud;
+}
+
+
+void BaseRealSenseNode::publishPointCloudEfficient(const rs2::points& pc, const ros::Time& t, const rs2::frameset& frameset)
+{
+    // Convert to PCL pointcloud
+    auto pcl_points = points_to_pcl(pc);
+
+    // Apply PCL filters
+    pcl_ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PassThrough<pcl::PointXYZ> pcl_filter;
+    pcl_filter.setInputCloud(pcl_points);
+    pcl_filter.setFilterFieldName("z");
+    pcl_filter.setFilterLimits(0.0, _pc_z_cut_off);
+    pcl_filter.filter(*cloud_filtered);
+
+    // Conver to ROS message
+    sensor_msgs::PointCloud2 msg_pointcloud;
+    pcl::toROSMsg(*cloud_filtered.get(),msg_pointcloud);
+
+    msg_pointcloud.header.stamp = t;
+    msg_pointcloud.header.frame_id = _optical_frame_id[DEPTH];
+    msg_pointcloud.width = cloud_filtered->size();
+    msg_pointcloud.height = 1;
+    msg_pointcloud.is_dense = true;
+
+    _pointcloud_publisher.publish(msg_pointcloud);
+
+    _send_info = true;
+}
 
 Extrinsics BaseRealSenseNode::rsExtrinsicsToMsg(const rs2_extrinsics& extrinsics, const std::string& frame_id) const
 {
