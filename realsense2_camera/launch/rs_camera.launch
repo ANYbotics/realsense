@@ -6,17 +6,17 @@
 
   <arg name="fisheye_width"       default="640"/>
   <arg name="fisheye_height"      default="480"/>
-  <arg name="enable_fisheye"      default="true"/>
+  <arg name="enable_fisheye"      default="false"/>
 
-  <arg name="depth_width"         default="640"/>
+  <arg name="depth_width"         default="848"/>
   <arg name="depth_height"        default="480"/>
   <arg name="enable_depth"        default="true"/>
 
-  <arg name="infra1_width"        default="640"/>
+  <arg name="infra1_width"        default="848"/>
   <arg name="infra1_height"       default="480"/>
   <arg name="enable_infra1"       default="true"/>
 
-  <arg name="infra2_width"        default="640"/>
+  <arg name="infra2_width"        default="848"/>
   <arg name="infra2_height"       default="480"/>
   <arg name="enable_infra2"       default="true"/>
 
@@ -25,16 +25,16 @@
   <arg name="enable_color"        default="true"/>
 
   <arg name="fisheye_fps"         default="30"/>
-  <arg name="depth_fps"           default="30"/>
-  <arg name="infra1_fps"          default="30"/>
-  <arg name="infra2_fps"          default="30"/>
+  <arg name="depth_fps"           default="6"/>
+  <arg name="infra1_fps"          default="6"/>
+  <arg name="infra2_fps"          default="6"/>
   <arg name="color_fps"           default="30"/>
   <arg name="gyro_fps"            default="1000"/>
   <arg name="accel_fps"           default="1000"/>
-  <arg name="enable_imu"          default="true"/>
+  <arg name="enable_imu"          default="false"/>
 
-  <arg name="enable_pointcloud"         default="false"/>
-  <arg name="pointcloud_texture_stream" default="RS2_STREAM_COLOR"/>
+  <arg name="enable_pointcloud"         default="true"/>
+  <arg name="pointcloud_texture_stream" default="RS2_STREAM_ANY"/>
   <arg name="pointcloud_texture_index"  default="0"/>
 
   <arg name="enable_sync"         default="false"/>
@@ -43,6 +43,10 @@
 
   <arg name="reset_device_startup"      default="true"/>
   <arg name="reset_sleep_time"          default="3.0"/>
+
+  <arg name="improve_performance"   default="true"/>
+  <arg name="z_cut_off"             default="1.5"/>
+  <arg name="voxel_filter"             default="0.0"/>
 
   <arg name="filters"             default=""/>
 
@@ -92,6 +96,10 @@
       <arg name="enable_imu"               value="$(arg enable_imu)"/>
 
       <arg name="filters"                  value="$(arg filters)"/>
+
+       <arg name="improve_performance"                  value="$(arg improve_performance)"/>
+      <arg name="z_cut_off"                  value="$(arg z_cut_off)"/>
+         <arg name="voxel_filter"                  value="$(arg voxel_filter)"/>
     </include>
   </group>
 </launch>

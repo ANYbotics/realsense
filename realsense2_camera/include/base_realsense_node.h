@@ -16,6 +16,7 @@
 // PCL
 #include <pcl/point_types.h>
 #include <pcl/filters/passthrough.h>
+#include <pcl/filters/voxel_grid.h>
 #include <pcl_conversions/pcl_conversions.h>
 
 
@@ -226,6 +227,7 @@ namespace realsense2_camera
         uint32_t _image_counter;
         bool _efficient_pointcloud;
         float _pc_z_cut_off;
+        float _voxel_filter;
 
     };//end class
 

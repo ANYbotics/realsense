@@ -229,7 +229,8 @@ void BaseRealSenseNode::getParameters()
     }
 
     _pnh.param("improve_performance", _efficient_pointcloud, false);
-    _pnh.param("z_cut_off", _pc_z_cut_off, 1.5f);
+    _pnh.param("z_cut_off", _pc_z_cut_off, 10.0f);
+    _pnh.param("voxel_filter", _voxel_filter, 0.0f);
 }
 
 void BaseRealSenseNode::setupDevice()
@@ -1371,12 +1372,23 @@ void BaseRealSenseNode::publishPointCloudEfficient(const rs2::points& pc, const 
     auto pcl_points = points_to_pcl(pc);
 
     // Apply PCL filters
+    pcl_ptr cloud_cut_off(new pcl::PointCloud<pcl::PointXYZ>);
     pcl_ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::PassThrough<pcl::PointXYZ> pcl_filter;
-    pcl_filter.setInputCloud(pcl_points);
-    pcl_filter.setFilterFieldName("z");
-    pcl_filter.setFilterLimits(0.0, _pc_z_cut_off);
-    pcl_filter.filter(*cloud_filtered);
+
+    // Pass though filter
+    pcl::PassThrough<pcl::PointXYZ> pt_filter;
+    pt_filter.setInputCloud(pcl_points);
+    pt_filter.setFilterFieldName("z");
+    pt_filter.setFilterLimits(0.0, _pc_z_cut_off);
+    pt_filter.filter(*cloud_cut_off);
+
+    // Voxel filter
+/*     if(_voxel_filter > 0.0){
+      pcl::VoxelGrid<pcl::PointXYZ> v_filter;
+      v_filter.setInputCloud (cloud_cut_off);
+      v_filter.setLeafSize (_voxel_filter, _voxel_filter, _voxel_filter);
+      v_filter.filter (*cloud_filtered);
+    } */
 
     // Conver to ROS message
     sensor_msgs::PointCloud2 msg_pointcloud;
