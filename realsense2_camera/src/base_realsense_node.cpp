@@ -229,6 +229,7 @@ void BaseRealSenseNode::getParameters()
     }
 
     _pnh.param("improve_performance", _efficient_pointcloud, false);
+    _pnh.param("voxelize", _apply_voxel_filter, false);
     _pnh.param("z_cut_off", _pc_z_cut_off, 10.0f);
     _pnh.param("voxel_filter", _voxel_filter, 0.0f);
 }
@@ -810,7 +811,7 @@ void BaseRealSenseNode::setupStreams()
                     image_time_info_msg.counter = _image_counter; // frame.get_frame_number() & 0xffffffff;
                     image_time_info_msg.exposure_time = exposure_time;
                     _time_info_publisher.publish(image_time_info_msg);
-                    //ROS_INFO("Publishing Counter %d at time %lu", image_time_info_msg.counter, t.toNSec());
+                    ROS_INFO("Publishing Counter %d at time %lu", image_time_info_msg.counter, t.toNSec());
                     _image_counter++;
                     _send_info = false;
                 }
@@ -1373,7 +1374,6 @@ void BaseRealSenseNode::publishPointCloudEfficient(const rs2::points& pc, const 
 
     // Apply PCL filters
     pcl_ptr cloud_cut_off(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl_ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
 
     // Pass though filter
     pcl::PassThrough<pcl::PointXYZ> pt_filter;
@@ -1382,21 +1382,30 @@ void BaseRealSenseNode::publishPointCloudEfficient(const rs2::points& pc, const 
     pt_filter.setFilterLimits(0.0, _pc_z_cut_off);
     pt_filter.filter(*cloud_cut_off);
 
+    // ROS msg
+    sensor_msgs::PointCloud2 msg_pointcloud;
+    unsigned int pointcloud_size = 0;
+
     // Voxel filter
-/*     if(_voxel_filter > 0.0){
+    if(_apply_voxel_filter){
+      pcl_ptr cloud_voxelized(new pcl::PointCloud<pcl::PointXYZ>);
       pcl::VoxelGrid<pcl::PointXYZ> v_filter;
       v_filter.setInputCloud (cloud_cut_off);
       v_filter.setLeafSize (_voxel_filter, _voxel_filter, _voxel_filter);
-      v_filter.filter (*cloud_filtered);
-    } */
+      v_filter.filter (*cloud_voxelized);
+      // Convert to ROS message
+      pcl::toROSMsg(*cloud_voxelized.get(),msg_pointcloud);
+      pointcloud_size = cloud_voxelized->size();
+    } else {
+      // Convert to ROS message
+      pcl::toROSMsg(*cloud_cut_off.get(),msg_pointcloud);
+      pointcloud_size = cloud_cut_off->size();
+    }
 
-    // Conver to ROS message
-    sensor_msgs::PointCloud2 msg_pointcloud;
-    pcl::toROSMsg(*cloud_filtered.get(),msg_pointcloud);
-
+    // Populate rest of message
     msg_pointcloud.header.stamp = t;
     msg_pointcloud.header.frame_id = _optical_frame_id[DEPTH];
-    msg_pointcloud.width = cloud_filtered->size();
+    msg_pointcloud.width = pointcloud_size;
     msg_pointcloud.height = 1;
     msg_pointcloud.is_dense = true;
 

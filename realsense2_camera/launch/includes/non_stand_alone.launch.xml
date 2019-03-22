@@ -82,6 +82,7 @@
   <arg name="improve_performance"   default="false"/>
   <arg name="z_cut_off"             default="1.5"/>
   <arg name="voxel_filter"             default="0.02"/>
+  <arg name="voxelize"   default="false"/>
 
   <node pkg="nodelet" type="nodelet" name="realsense2_camera" args="load realsense2_camera/RealSenseNodeFactory /$(arg nodelet_manager)">
     <param name="serial_no"                type="str"  value="$(arg serial_no)"/>
@@ -148,6 +149,7 @@
     <param name="aligned_depth_to_fisheye_frame_id" type="str"  value="$(arg aligned_depth_to_fisheye_frame_id)"/>
     
     <param name="improve_performance"  value="$(arg improve_performance)"/>
+    <param name="voxelize"  value="$(arg voxelize)"/>
     <param name="z_cut_off"            value="$(arg z_cut_off)"/>
     <param name="voxel_filter"            value="$(arg voxel_filter)"/>
 

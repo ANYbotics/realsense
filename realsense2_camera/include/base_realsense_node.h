@@ -228,6 +228,7 @@ namespace realsense2_camera
         bool _efficient_pointcloud;
         float _pc_z_cut_off;
         float _voxel_filter;
+        bool _apply_voxel_filter;
 
     };//end class
 
