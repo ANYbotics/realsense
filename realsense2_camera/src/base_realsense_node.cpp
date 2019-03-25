@@ -811,7 +811,7 @@ void BaseRealSenseNode::setupStreams()
                     image_time_info_msg.counter = _image_counter; // frame.get_frame_number() & 0xffffffff;
                     image_time_info_msg.exposure_time = exposure_time;
                     _time_info_publisher.publish(image_time_info_msg);
-                    ROS_INFO("Publishing Counter %d at time %lu", image_time_info_msg.counter, t.toNSec());
+                    //ROS_INFO("Publishing Counter %d at time %lu", image_time_info_msg.counter, t.toNSec());
                     _image_counter++;
                     _send_info = false;
                 }
