@@ -81,6 +81,7 @@
   <arg name="unite_imu_method"         default="none"/> <!-- Options are: [none, copy, linear_interpolation] -->
 
   <arg name="ros_time_offset"     default="0.0"/>
+  <arg name="inter_cam_sync_mode" default="none" />
 
   <node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen"/>
   <node pkg="nodelet" type="nodelet" name="realsense2_camera" args="load realsense2_camera/RealSenseNodeFactory $(arg manager)">
@@ -162,6 +163,8 @@
     <param name="linear_accel_cov"         type="double" value="$(arg linear_accel_cov)"/>
     <param name="initial_reset"            type="bool"   value="$(arg initial_reset)"/>
     <param name="unite_imu_method"         type="str"    value="$(arg unite_imu_method)"/>
+
+    <param name="inter_cam_sync_mode" type="str" value="$(arg inter_cam_sync_mode)"/>
 
   </node>
 </launch>

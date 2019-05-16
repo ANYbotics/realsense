@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
     tf
     ddynamic_reconfigure
     diagnostic_updater
+    any_msgs
     )
     
 find_package(Eigen3 REQUIRED)

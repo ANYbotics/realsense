@@ -56,6 +56,7 @@ namespace realsense2_camera
     const bool HOLD_BACK_IMU_FOR_FRAMES = false;
     const bool PUBLISH_ODOM_TF = true;
 
+    const std::string INTER_CAM_SYNC_MODE              = "none";
 
     const std::string DEFAULT_BASE_FRAME_ID            = "camera_link";
     const std::string DEFAULT_ODOM_FRAME_ID            = "odom_frame";

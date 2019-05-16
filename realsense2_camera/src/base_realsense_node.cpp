@@ -483,6 +483,28 @@ void BaseRealSenseNode::getParameters()
     _pnh.param("angular_velocity_cov", _angular_velocity_cov, static_cast<double>(0.01));
     _pnh.param("hold_back_imu_for_frames", _hold_back_imu_for_frames, HOLD_BACK_IMU_FOR_FRAMES);
     _pnh.param("publish_odom_tf", _publish_odom_tf, PUBLISH_ODOM_TF);
+
+    std::string inter_cam_sync_mode_param;
+    _pnh.param("inter_cam_sync_mode", inter_cam_sync_mode_param, INTER_CAM_SYNC_MODE);
+    std::transform(inter_cam_sync_mode_param.begin(), inter_cam_sync_mode_param.end(),
+                   inter_cam_sync_mode_param.begin(), ::tolower);
+    // note: added a "none" mode, as not all sensor types/firmware versions allow setting of the sync mode.
+    //       Use "none" if nothing is specified or an error occurs.
+    //       Default (mode = 0) here refers to the default sync mode as per Intel whitepaper,
+    //       which corresponds to master mode but no trigger output on Pin 5.
+    //       Master (mode = 1) activates trigger signal output on Pin 5.
+    //       Slave (mode = 2) causes the realsense to listen to a trigger signal on pin 5.
+    if(inter_cam_sync_mode_param == "default"){ _inter_cam_sync_mode = inter_cam_sync_default; }
+    else if(inter_cam_sync_mode_param == "master") { _inter_cam_sync_mode = inter_cam_sync_master; }
+    else if(inter_cam_sync_mode_param == "slave"){ _inter_cam_sync_mode = inter_cam_sync_slave; }
+    else if(inter_cam_sync_mode_param == "none") { _inter_cam_sync_mode = inter_cam_sync_none; }
+    else
+    {
+        _inter_cam_sync_mode = inter_cam_sync_none;
+        ROS_WARN_STREAM("Invalid inter cam sync mode (" << inter_cam_sync_mode_param << ")! Not using inter cam sync mode.");
+}
+
+
 }
 
 void BaseRealSenseNode::setupDevice()
@@ -620,6 +642,17 @@ void BaseRealSenseNode::setupDevice()
                 _enable[enable.first] = false;
             }
         }
+
+        // set cam sync mode
+        if(_inter_cam_sync_mode != inter_cam_sync_none)
+        {
+            _sensors[DEPTH].set_option(RS2_OPTION_INTER_CAM_SYNC_MODE, _inter_cam_sync_mode);
+            ROS_INFO_STREAM("Inter cam sync mode set to " << _inter_cam_sync_mode);
+            _send_info = false;
+            _image_counter = 0;
+        }
+
+
     }
     catch(const std::exception& ex)
     {
@@ -642,6 +675,9 @@ void BaseRealSenseNode::setupPublishers()
     {
         if (_enable[stream])
         {
+
+            _time_info_publisher = _node_handle.advertise<any_msgs::SensorTimeInfo>("depth/time_info", 1);
+
             std::stringstream image_raw, camera_info;
             bool rectified_image = false;
             if (stream == DEPTH || stream == INFRA1 || stream == INFRA2)
@@ -1523,6 +1559,24 @@ void BaseRealSenseNode::frame_callback(rs2::frame frame)
                             _camera_info, _optical_frame_id,
                             _encoding);
         }
+
+        if(_send_info){
+            any_msgs::SensorTimeInfo image_time_info_msg;
+
+            unsigned long long exposure_time = frame.supports_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE) ?
+                                static_cast<unsigned long long>(frame.get_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE)) : 0.0;
+
+            image_time_info_msg.header.stamp = t;
+            image_time_info_msg.counter = _image_counter; // frame.get_frame_number() & 0xffffffff;
+            image_time_info_msg.duration = exposure_time;
+            _time_info_publisher.publish(image_time_info_msg);
+            //ROS_INFO("Publishing Counter %d at time %lu", image_time_info_msg.counter, t.toNSec());
+            _image_counter++;
+            _send_info = false;
+        }
+
+
+
     }
     catch(const std::exception& ex)
     {
@@ -2100,6 +2154,9 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
         image_publisher.second->update();
         // ROS_INFO_STREAM("fid: " << cam_info.header.seq << ", time: " << std::setprecision (20) << t.toSec());
         ROS_DEBUG("%s stream published", rs2_stream_to_string(f.get_profile().stream_type()));
+
+        _send_info = true;
+
     }
 }
 

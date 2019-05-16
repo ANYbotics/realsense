@@ -27,6 +27,7 @@
   <depend>diagnostic_updater</depend>
   <depend>librealsense2</depend>
   <depend>eigen</depend>
+  <depend>any_msgs</depend>
   <export>
     <nodelet plugin="${prefix}/nodelet_plugins.xml" />
   </export>

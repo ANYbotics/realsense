@@ -15,12 +15,36 @@
 #include <sensor_msgs/Imu.h>
 #include <nav_msgs/Odometry.h>
 
+#include <any_msgs/SensorTimeInfo.h>
+
 #include <queue>
 #include <mutex>
 #include <atomic>
 
 namespace realsense2_camera
 {
+
+    enum base_depth_param{
+        base_depth_gain = 1,
+        base_depth_visual_preset,
+        base_depth_frames_queue_size,
+        base_depth_error_polling_enabled,
+        base_depth_output_trigger_enabled,
+        base_depth_units,
+        base_sensors_enabled,
+        base_JSON_file_path,
+        base_depth_enable_auto_exposure = 100,
+        base_depth_count
+    };
+
+    // not using enum class here for consistence with realsense code.
+    enum inter_cam_sync_mode{
+      inter_cam_sync_default = 0,
+      inter_cam_sync_master = 1,
+      inter_cam_sync_slave = 2,
+      inter_cam_sync_none = -1
+    };
+
     struct FrequencyDiagnostics
     {
       FrequencyDiagnostics(double expected_frequency, std::string name, std::string hardware_id) :
@@ -258,13 +282,17 @@ namespace realsense2_camera
         std::map<stream_index_pair, sensor_msgs::CameraInfo> _camera_info;
         std::atomic_bool _is_initialized_time_base;
         double _camera_time_base;
+        inter_cam_sync_mode _inter_cam_sync_mode;
         std::map<stream_index_pair, std::vector<rs2::stream_profile>> _enabled_profiles;
 
         ros::Publisher _pointcloud_publisher;
+        ros::Publisher _time_info_publisher;
         ros::Time _ros_time_base;
         bool _sync_frames;
         bool _pointcloud;
         bool _publish_odom_tf;
+        bool _send_info;
+        uint64_t _image_counter;
         imu_sync_method _imu_sync_method;
         double _ros_time_offset = 0.0;
         std::string _filters_str;
