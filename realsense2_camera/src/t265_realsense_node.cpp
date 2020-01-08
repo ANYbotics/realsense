@@ -10,6 +10,7 @@ T265RealsenseNode::T265RealsenseNode(ros::NodeHandle& nodeHandle,
                                      _wo_snr(dev.first<rs2::wheel_odometer>()),
                                      _use_odom_in(false) 
                                      {
+                                         _monitor_options = {RS2_OPTION_ASIC_TEMPERATURE, RS2_OPTION_MOTION_MODULE_TEMPERATURE};
                                          initializeOdometryInput();
                                      }
 
@@ -59,12 +60,12 @@ void T265RealsenseNode::setupSubscribers()
 
 void T265RealsenseNode::odom_in_callback(const nav_msgs::Odometry::ConstPtr& msg)
 {
-    ROS_INFO("Got in_odom message");
+    ROS_DEBUG("Got in_odom message");
     rs2_vector velocity {-(float)(msg->twist.twist.linear.y),
                           (float)(msg->twist.twist.linear.z),
                          -(float)(msg->twist.twist.linear.x)};
 
-    ROS_INFO_STREAM("Add odom: " << velocity.x << ", " << velocity.y << ", " << velocity.z);
+    ROS_DEBUG_STREAM("Add odom: " << velocity.x << ", " << velocity.y << ", " << velocity.z);
     _wo_snr.send_wheel_odometry(0, 0, velocity);
 }
 
@@ -72,7 +73,7 @@ void T265RealsenseNode::calcAndPublishStaticTransform(const stream_index_pair& s
 {
     // Transform base to stream
     tf::Quaternion quaternion_optical;
-    quaternion_optical.setRPY(M_PI / 2, 0.0, -M_PI / 2);
+    quaternion_optical.setRPY(M_PI / 2, 0.0, -M_PI / 2);    //Pose To ROS
     float3 zero_trans{0, 0, 0};
 
     ros::Time transform_ts_ = ros::Time::now();
@@ -101,8 +102,6 @@ void T265RealsenseNode::calcAndPublishStaticTransform(const stream_index_pair& s
     if (stream == POSE)
     {
         Q = Q.inverse();
-        quaternion_optical = quaternion_optical.inverse();
-
         publish_static_tf(transform_ts_, trans, Q, _frame_id[stream], _base_frame_id);
     }
     else

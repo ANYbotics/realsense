@@ -18,6 +18,8 @@ limitations under the License.
 A launch file, derived from rgbd_launch and customized for Realsense ROS driver,
 to publish XYZRGB point cloud like an OpenNI camera.
 
+NOTICE: To use this launch file you must first install ros package rgbd_launch.
+
 To launch Realsense with software registeration (ROS Image Pipeline and rgbd_launch):
     $ roslaunch realsense2_camera rs_rgbd.launch
 Processing enabled by ROS driver:
@@ -40,11 +42,14 @@ Processing enabled by this node:
 <launch>
   <arg name="camera"              default="camera"/>
   <arg name="tf_prefix"           default="$(arg camera)"/>
+  <arg name="external_manager"    default="false"/>
   <arg name="manager"             default="realsense2_camera_manager"/>
 
   <!-- Camera device specific arguments -->
 
   <arg name="serial_no"           default=""/>
+  <arg name="usb_port_id"         default=""/>
+  <arg name="device_type"         default=""/>
   <arg name="json_file_path"      default=""/>
 
   <arg name="fisheye_width"       default="640"/>
@@ -111,9 +116,12 @@ Processing enabled by this node:
 
     <!-- Launch the camera device nodelet-->
     <include file="$(find realsense2_camera)/launch/includes/nodelet.launch.xml">
+      <arg name="external_manager"         value="$(arg external_manager)"/>
       <arg name="manager"                  value="$(arg manager)"/>
       <arg name="tf_prefix"                value="$(arg tf_prefix)"/>
       <arg name="serial_no"                value="$(arg serial_no)"/>
+      <arg name="usb_port_id"              value="$(arg usb_port_id)"/>
+      <arg name="device_type"              value="$(arg device_type)"/>
       <arg name="json_file_path"           value="$(arg json_file_path)"/>
 
       <arg name="enable_pointcloud"        value="$(arg enable_pointcloud)"/>

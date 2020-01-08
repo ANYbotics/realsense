@@ -1,9 +1,13 @@
 <launch>
+  <arg name="external_manager"    default="false"/>
   <arg name="manager"             default="realsense2_camera_manager"/>
   <arg name="serial_no"           default=""/>
+  <arg name="usb_port_id"         default=""/>
+  <arg name="device_type"         default=""/>
   <arg name="tf_prefix"           default=""/>
   <arg name="json_file_path"      default=""/>
   <arg name="rosbag_filename"     default=""/>
+  <arg name="required"            default="false"/>
 
   <arg name="fisheye_width"       default="0"/>
   <arg name="fisheye_height"      default="0"/>
@@ -61,6 +65,7 @@
   <arg name="fisheye2_optical_frame_id" default="$(arg tf_prefix)_fisheye2_optical_frame"/>
   <arg name="accel_optical_frame_id"    default="$(arg tf_prefix)_accel_optical_frame"/>
   <arg name="gyro_optical_frame_id"     default="$(arg tf_prefix)_gyro_optical_frame"/>
+  <arg name="imu_optical_frame_id"      default="$(arg tf_prefix)_imu_optical_frame"/>
   <arg name="pose_optical_frame_id"     default="$(arg tf_prefix)_pose_optical_frame"/>
 
   <arg name="aligned_depth_to_color_frame_id"    default="$(arg tf_prefix)_aligned_depth_to_color_frame"/>
@@ -69,6 +74,9 @@
   <arg name="aligned_depth_to_fisheye_frame_id"  default="$(arg tf_prefix)_aligned_depth_to_fisheye_frame"/>
   <arg name="aligned_depth_to_fisheye1_frame_id" default="$(arg tf_prefix)_aligned_depth_to_fisheye1_frame"/>
   <arg name="aligned_depth_to_fisheye2_frame_id" default="$(arg tf_prefix)_aligned_depth_to_fisheye2_frame"/>
+
+  <arg name="publish_tf"               default="true"/>
+  <arg name="tf_publish_rate"          default="0"/> <!-- 0 - static transform -->
 
   <arg name="odom_frame_id"            default="$(arg tf_prefix)_odom_frame"/>
   <arg name="topic_odom_in"            default="$(arg tf_prefix)/odom_in"/>
@@ -79,15 +87,18 @@
   <arg name="linear_accel_cov"         default="0.01"/>
   <arg name="initial_reset"            default="false"/>
   <arg name="unite_imu_method"         default="none"/> <!-- Options are: [none, copy, linear_interpolation] -->
+  <arg name="allow_no_texture_points"  default="false"/>
 
   <!-- Options: baseline, fixed_offset, varying_offsets -->
   <arg name="timestamping_method"      default="baseline"/>
   <arg name="fixed_time_offset"        default="0.0"/>
   <arg name="disable_color_startup"    default="false"/>
 
-  <node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen"/>
-  <node pkg="nodelet" type="nodelet" name="realsense2_camera" args="load realsense2_camera/RealSenseNodeFactory $(arg manager)">
+  <node unless="$(arg external_manager)" pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen" required="$(arg required)"/>
+  <node pkg="nodelet" type="nodelet" name="realsense2_camera" args="load realsense2_camera/RealSenseNodeFactory $(arg manager)" required="$(arg required)">
     <param name="serial_no"                type="str"  value="$(arg serial_no)"/>
+    <param name="usb_port_id"              type="str"  value="$(arg usb_port_id)"/>
+    <param name="device_type"              type="str"  value="$(arg device_type)"/>
     <param name="json_file_path"           type="str"  value="$(arg json_file_path)"/>
     <param name="rosbag_filename"          type="str"  value="$(arg rosbag_filename)"/>
 
@@ -150,6 +161,7 @@
     <param name="fisheye2_optical_frame_id" type="str"  value="$(arg fisheye2_optical_frame_id)"/>
     <param name="accel_optical_frame_id"    type="str"  value="$(arg accel_optical_frame_id)"/>
     <param name="gyro_optical_frame_id"     type="str"  value="$(arg gyro_optical_frame_id)"/>
+    <param name="imu_optical_frame_id"      type="str"  value="$(arg imu_optical_frame_id)"/>
     <param name="pose_optical_frame_id"     type="str"  value="$(arg pose_optical_frame_id)"/>
 
     <param name="aligned_depth_to_color_frame_id"    type="str"  value="$(arg aligned_depth_to_color_frame_id)"/>
@@ -158,6 +170,9 @@
     <param name="aligned_depth_to_fisheye_frame_id"  type="str"  value="$(arg aligned_depth_to_fisheye_frame_id)"/>
     <param name="aligned_depth_to_fisheye1_frame_id" type="str"  value="$(arg aligned_depth_to_fisheye1_frame_id)"/>
     <param name="aligned_depth_to_fisheye2_frame_id" type="str"  value="$(arg aligned_depth_to_fisheye2_frame_id)"/>
+
+    <param name="publish_tf"               type="bool"   value="$(arg publish_tf)"/>
+    <param name="tf_publish_rate"          type="double" value="$(arg tf_publish_rate)"/>
 
     <param name="odom_frame_id"            type="str"  value="$(arg odom_frame_id)"/>
     <param name="topic_odom_in"            type="str"  value="$(arg topic_odom_in)"/>
@@ -168,6 +183,7 @@
     <param name="linear_accel_cov"         type="double" value="$(arg linear_accel_cov)"/>
     <param name="initial_reset"            type="bool"   value="$(arg initial_reset)"/>
     <param name="unite_imu_method"         type="str"    value="$(arg unite_imu_method)"/>
+    <param name="allow_no_texture_points"  type="bool"   value="$(arg allow_no_texture_points)"/>
 
   </node>
 </launch>

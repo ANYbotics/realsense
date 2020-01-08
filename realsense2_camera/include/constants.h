@@ -7,7 +7,7 @@
 
 #define REALSENSE_ROS_MAJOR_VERSION    2
 #define REALSENSE_ROS_MINOR_VERSION    2
-#define REALSENSE_ROS_PATCH_VERSION    3
+#define REALSENSE_ROS_PATCH_VERSION    11
 
 #define STRINGIFY(arg) #arg
 #define VAR_ARG_STRING(arg) STRINGIFY(arg)
@@ -17,6 +17,7 @@
 namespace realsense2_camera
 {
     const uint16_t SR300_PID        = 0x0aa5; // SR300
+    const uint16_t SR300v2_PID      = 0x0B48; // SR305
     const uint16_t RS400_PID        = 0x0ad1; // PSR
     const uint16_t RS410_PID        = 0x0ad2; // ASR
     const uint16_t RS415_PID        = 0x0ad3; // ASRC
@@ -37,7 +38,11 @@ namespace realsense2_camera
 
     const bool ALIGN_DEPTH    = false;
     const bool POINTCLOUD     = false;
+    const bool ALLOW_NO_TEXTURE_POINTS = false;
     const bool SYNC_FRAMES    = false;
+
+    const bool PUBLISH_TF        = true;
+    const double TF_PUBLISH_RATE = 0; // Static transform
 
     const int IMAGE_WIDTH     = 640;
     const int IMAGE_HEIGHT    = 480;
