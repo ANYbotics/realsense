@@ -10,7 +10,7 @@ import logging
 # ROS imports
 import rospy
 import rosnode
-from sensor_msgs.msg import PointCloud2
+from any_realsense2_camera.msg import TimestampingInfoMsg
 from anymal_longterm_tests import TopicTimeoutTester
 from anymal_longterm_tests import TestNode
 
@@ -24,6 +24,8 @@ TOPIC_RATE_MARGIN = 2.0
 TOPIC_TIMEOUT = 0.5 
 TOPIC_HARD_TIMEOUT = 30
 TEST_NAME = "realsense_test"
+
+EXPOSURE_TIME_UPPER_THRESHOLD_MSEC = 1000000
 
 
 class RealsenseTester(TopicTimeoutTester):
@@ -42,11 +44,39 @@ class RealsenseTester(TopicTimeoutTester):
             suffix (str, optional): Realsense suffix. Defaults to "front".
         """
         super().__init__(topic="/depth_camera_" + suffix +
-                               "/depth/color/points",
-                         message_type=PointCloud2,
+                               "/camera_timestamping_info",
+                         message_type=TimestampingInfoMsg,
                          timeout=timeout,
-                         hard_timeout=TOPIC_HARD_TIMEOUT)
+                         hard_timeout=TOPIC_HARD_TIMEOUT,
+                         custom_rx_hook=self.__is_data_in_bounds)
         self.name = "realsense_test" + suffix
+        self.frame_counter_last = None # Initialize to none
+
+    def __is_data_in_bounds(self, d):
+        # Frame counter check
+        if self.frame_counter_last is not None:
+            if d.frame_metadata.frame_counter < self.frame_counter_last:
+                self.data_out_of_bounds += 1
+                rospy.logerr("{}: Frame counter was not updated".format(self.name))
+        # Update frame last frame counter with the received one
+        self.frame_counter_last = d.frame_metadata.frame_counter
+        
+        # Check actual FPS
+        if d.frame_metadata.actual_fps != 6.0:
+            self.data_out_of_bounds += 1
+            rospy.logerr("{}: Actual FPS is out of bounds in frame metadata".format(self.name))
+
+        # Exposure time check 
+        if d.frame_metadata.exposure_time < 0 or d.frame_metadata.exposure_time > EXPOSURE_TIME_UPPER_THRESHOLD_MSEC:
+            self.data_out_of_bounds += 1
+            rospy.logerr("{}: Exposure time is out of bounds ({} - should be below {})".format(self.name, d.frame_metadata.exposure_time, EXPOSURE_TIME_UPPER_THRESHOLD_MSEC))
+
+        # Check if laser is enabled
+        if not d.frame_metadata.laser_enabled:
+            self.data_out_of_bounds += 1
+            rospy.logerr("{}: Laser is reports that it is not enabled".format(self.name))    
+
+        # Temperature (0.0) and laser power (150) never change, so they are not really meaningful to test
 
     def get_name(self):
         """
