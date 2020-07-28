@@ -49,15 +49,18 @@ class RealsenseTester(TopicTimeoutTester):
                          timeout=timeout,
                          hard_timeout=TOPIC_HARD_TIMEOUT,
                          custom_rx_hook=self.__is_data_in_bounds)
-        self.name = "realsense_test" + suffix
+        self.name = "realsense_test_" + suffix
         self.frame_counter_last = None # Initialize to none
 
     def __is_data_in_bounds(self, d):
         # Frame counter check
         if self.frame_counter_last is not None:
-            if d.frame_metadata.frame_counter < self.frame_counter_last:
+            # Frame counter should always be incremented by 1.
+            expected_counter = self.frame_counter_last + 1
+            if d.frame_metadata.frame_counter != expected_counter:
                 self.data_out_of_bounds += 1
-                rospy.logerr("{}: Frame counter was not updated".format(self.name))
+                rospy.logerr("{}: Expected frame counter {} - received {}".format(self.name,
+                    expected_counter, d.frame_metadata.frame_counter))
         # Update frame last frame counter with the received one
         self.frame_counter_last = d.frame_metadata.frame_counter
         
