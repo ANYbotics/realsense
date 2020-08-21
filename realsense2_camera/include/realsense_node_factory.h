@@ -20,10 +20,10 @@
 #include <any_librealsense2/rs_advanced_mode.hpp>
 
 #include <constants.h>
-#include <any_realsense2_camera/Extrinsics.h>
-#include <any_realsense2_camera/IMUInfo.h>
+#include <any_realsense2_msgs/Extrinsics.h>
+#include <any_realsense2_msgs/IMUInfo.h>
 
-using namespace any_realsense2_camera;
+using namespace any_realsense2_msgs;
 
 namespace realsense2_camera
 {

@@ -2,17 +2,14 @@ cmake_minimum_required(VERSION 3.5.1)
 project(any_realsense2_camera)
 add_compile_options(-std=c++11)
 
-option(BUILD_WITH_OPENMP "Use OpenMP" OFF)
-option(SET_USER_BREAK_AT_STARTUP "Set user wait point in startup (for debug)" OFF)
-
 find_package(catkin REQUIRED
     COMPONENTS
-        message_generation
         nav_msgs
         roscpp
         sensor_msgs
         std_msgs
         any_librealsense2
+        any_realsense2_msgs
         nodelet
         cv_bridge
         image_transport
@@ -53,20 +50,6 @@ endif()
 
 set(CMAKE_CXX_FLAGS "-fPIE -fPIC -std=c++11 -D_FORTIFY_SOURCE=2 -fstack-protector -Wformat -Wformat-security -Wall ${CMAKE_CXX_FLAGS}")
 
-add_message_files(
-    FILES
-        IMUInfo.msg
-        Extrinsics.msg
-        FrameMetadataMsg.msg
-        TimeOffsetsMsg.msg
-        TimestampingInfoMsg.msg
-    )
-
-generate_messages(
-    DEPENDENCIES
-        sensor_msgs
-        std_msgs
-    )
 
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED true)
 include_directories(
@@ -84,11 +67,11 @@ catkin_package(
     LIBRARIES
         ${PROJECT_NAME}
     CATKIN_DEPENDS
-        message_runtime
         roscpp
         sensor_msgs
         std_msgs
         any_librealsense2
+        any_realsense2_msgs
         nodelet
         cv_bridge
         image_transport
@@ -107,7 +90,6 @@ add_library(${PROJECT_NAME}
     src/t265_realsense_node.cpp
     )
 
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_generate_messages_cpp)
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 
 target_include_directories(${PROJECT_NAME}

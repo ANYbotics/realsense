@@ -17,9 +17,9 @@
 #include <tf2_ros/static_transform_broadcaster.h>
 
 #include <std_srvs/SetBool.h>
-#include <any_realsense2_camera/FrameMetadataMsg.h>
-#include <any_realsense2_camera/TimeOffsetsMsg.h>
-#include <any_realsense2_camera/TimestampingInfoMsg.h>
+#include <any_realsense2_msgs/FrameMetadataMsg.h>
+#include <any_realsense2_msgs/TimeOffsetsMsg.h>
+#include <any_realsense2_msgs/TimestampingInfoMsg.h>
 
 #include <condition_variable>
 #include <queue>
@@ -27,7 +27,7 @@
 #include <atomic>
 #include <thread>
 
-using namespace any_realsense2_camera;
+using namespace any_realsense2_msgs;
 
 namespace realsense2_camera
 {

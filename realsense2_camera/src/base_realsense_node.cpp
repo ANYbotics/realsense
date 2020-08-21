@@ -6,7 +6,7 @@
 #include <cctype>
 #include <mutex>
 
-using namespace any_realsense2_camera;
+using namespace any_realsense2_msgs;
 using namespace realsense2_camera;
 using namespace ddynamic_reconfigure;
 

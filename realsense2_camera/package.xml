@@ -26,6 +26,7 @@
   <depend>ddynamic_reconfigure</depend>
   <depend>diagnostic_updater</depend>
   <depend>any_librealsense2</depend>
+  <depend>any_realsense2_msgs</depend>
   <depend>eigen</depend>
   <depend>std_srvs</depend>
   <export>

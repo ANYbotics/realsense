@@ -1,6 +1,6 @@
 #include "../include/t265_realsense_node.h"
 
-using namespace any_realsense2_camera;
+using namespace any_realsense2_msgs;
 using namespace realsense2_camera;
 
 T265RealsenseNode::T265RealsenseNode(ros::NodeHandle& nodeHandle,
