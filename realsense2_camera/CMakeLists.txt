@@ -36,12 +36,17 @@ if(SET_USER_BREAK_AT_STARTUP)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBPDEBUG")
 endif()
 
-# find_package(realsense2 2.29.0)
-# if(NOT realsense2_FOUND)
-#     message(FATAL_ERROR "\n\n Intel RealSense SDK 2.0 is missing, please install it from https://github.com/IntelRealSense/librealsense/releases\n\n")
-# endif()
+find_package(realsense2 2.35.2)
+if(NOT realsense2_FOUND)
+    message(FATAL_ERROR "\n\n Intel RealSense SDK 2.0 is missing, please install it from https://github.com/IntelRealSense/librealsense/releases\n\n")
+endif()
 
-if (CMAKE_BUILD_TYPE EQUAL "RELEASE")
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
+if (${uppercase_CMAKE_BUILD_TYPE} STREQUAL "RELEASE")
     message(STATUS "Create Release Build.")
     set(CMAKE_CXX_FLAGS "-O2 ${CMAKE_CXX_FLAGS}")
 else()
@@ -54,8 +59,8 @@ set(CMAKE_CXX_FLAGS "-fPIE -fPIC -std=c++11 -D_FORTIFY_SOURCE=2 -fstack-protecto
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED true)
 include_directories(
     include
-    SYSTEM
-        ${catkin_INCLUDE_DIRS}
+    ${realsense2_INCLUDE_DIR}
+    ${catkin_INCLUDE_DIRS}
         ${EIGEN3_INCLUDE_DIR}
     )
 

@@ -29,6 +29,7 @@ namespace realsense2_camera
 {
     const stream_index_pair COLOR{RS2_STREAM_COLOR, 0};
     const stream_index_pair DEPTH{RS2_STREAM_DEPTH, 0};
+    const stream_index_pair INFRA0{RS2_STREAM_INFRARED, 0};
     const stream_index_pair INFRA1{RS2_STREAM_INFRARED, 1};
     const stream_index_pair INFRA2{RS2_STREAM_INFRARED, 2};
     const stream_index_pair FISHEYE{RS2_STREAM_FISHEYE, 0};
@@ -39,7 +40,7 @@ namespace realsense2_camera
     const stream_index_pair POSE{RS2_STREAM_POSE, 0};
     
 
-    const std::vector<stream_index_pair> IMAGE_STREAMS = {DEPTH, INFRA1, INFRA2,
+    const std::vector<stream_index_pair> IMAGE_STREAMS = {DEPTH, INFRA0, INFRA1, INFRA2,
                                                           COLOR,
                                                           FISHEYE,
                                                           FISHEYE1, FISHEYE2};
@@ -67,6 +68,7 @@ namespace realsense2_camera
         void getDevice(rs2::device_list list);
         virtual void onInit() override;
         void tryGetLogSeverity(rs2_log_severity& severity) const;
+        static std::string parse_usb_port(std::string line);
 
         rs2::device _device;
         std::unique_ptr<InterfaceRealSenseNode> _realSenseNode;
@@ -77,5 +79,6 @@ namespace realsense2_camera
         bool _initial_reset;
         std::thread _query_thread;
 
+        bool _is_alive;
     };
 }//end namespace
