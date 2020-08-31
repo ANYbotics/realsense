@@ -1,12 +1,10 @@
 cmake_minimum_required(VERSION 3.5.1)
 project(any_realsense2_description)
 
-find_package(catkin REQUIRED COMPONENTS
-    )
+find_package(catkin REQUIRED)
 
 # RealSense description
-catkin_package(
-    )
+catkin_package()
 
 # Install files
 install(DIRECTORY launch meshes rviz urdf
