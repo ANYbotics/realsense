@@ -132,31 +132,48 @@ install(FILES nodelet_plugins.xml
 ##   Test   ##
 ##############
 if(CATKIN_ENABLE_TESTING)
-catkin_add_gtest(test_${PROJECT_NAME}
-  test/empty_test.cpp
-)
+    find_package(catkin REQUIRED
+        COMPONENTS
+            nav_msgs
+            roscpp
+            sensor_msgs
+            std_msgs
+            any_librealsense2
+            any_realsense2_msgs
+            nodelet
+            cv_bridge
+            image_transport
+            tf
+            ddynamic_reconfigure
+            diagnostic_updater
+            std_srvs
+    )
 
-target_include_directories(test_${PROJECT_NAME}
-  PRIVATE
-    include
-  SYSTEM PUBLIC
-    ${catkin_INCLUDE_DIRS}
-)
+    catkin_add_gtest(test_${PROJECT_NAME}
+        test/empty_test.cpp
+    )
 
-target_link_libraries(test_${PROJECT_NAME}
-  gtest_main
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
+    target_include_directories(test_${PROJECT_NAME}
+        PRIVATE
+            include
+        SYSTEM PUBLIC
+            ${catkin_INCLUDE_DIRS}
+    )
 
-###################
-## Code_coverage ##
-###################
-find_package(cmake_code_coverage QUIET)
-if(cmake_code_coverage_FOUND)
-  add_gtest_coverage(
-    TEST_BUILD_TARGETS
-      test_${PROJECT_NAME}
-  )
-endif(cmake_code_coverage_FOUND)
+    target_link_libraries(test_${PROJECT_NAME}
+        gtest_main
+        ${PROJECT_NAME}
+        ${catkin_LIBRARIES}
+    )
+
+    ###################
+    ## Code_coverage ##
+    ###################
+    find_package(cmake_code_coverage QUIET)
+    if(cmake_code_coverage_FOUND)
+        add_gtest_coverage(
+            TEST_BUILD_TARGETS
+                test_${PROJECT_NAME}
+    )
+    endif()
 endif()
