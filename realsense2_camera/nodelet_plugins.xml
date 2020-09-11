@@ -1,5 +1,5 @@
 <library path="lib/libany_realsense2_camera">
-    <class name="realsense2_camera/RealSenseNodeFactory" type="realsense2_camera::RealSenseNodeFactory" base_class_type="nodelet::Nodelet">
+    <class name="any_realsense2_camera/RealSenseNodeFactory" type="realsense2_camera::RealSenseNodeFactory" base_class_type="nodelet::Nodelet">
         <description>
             Example camera nodelet using the Intel RealSense SDK 2.0 library for Intel RealSense SR300 and D400 cameras
         </description>

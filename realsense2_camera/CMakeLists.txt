@@ -99,6 +99,7 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     ${catkin_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
+    pthread
     )
 
 # Install nodelet library
