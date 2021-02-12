@@ -8,6 +8,7 @@
 #include <image_transport/image_transport.h>
 #include <ros/ros.h>
 #include <ros/package.h>
+#include <std_srvs/SetBool.h>
 #include <cv_bridge/cv_bridge.h>
 #include <csignal>
 #include <eigen3/Eigen/Geometry>
@@ -29,6 +30,7 @@ namespace realsense2_camera
 {
     const stream_index_pair COLOR{RS2_STREAM_COLOR, 0};
     const stream_index_pair DEPTH{RS2_STREAM_DEPTH, 0};
+    const stream_index_pair INFRA0{RS2_STREAM_INFRARED, 0};
     const stream_index_pair INFRA1{RS2_STREAM_INFRARED, 1};
     const stream_index_pair INFRA2{RS2_STREAM_INFRARED, 2};
     const stream_index_pair FISHEYE{RS2_STREAM_FISHEYE, 0};
@@ -37,12 +39,12 @@ namespace realsense2_camera
     const stream_index_pair GYRO{RS2_STREAM_GYRO, 0};
     const stream_index_pair ACCEL{RS2_STREAM_ACCEL, 0};
     const stream_index_pair POSE{RS2_STREAM_POSE, 0};
-    
+    const stream_index_pair CONFIDENCE{RS2_STREAM_CONFIDENCE, 0};    
 
-    const std::vector<stream_index_pair> IMAGE_STREAMS = {DEPTH, INFRA1, INFRA2,
+    const std::vector<stream_index_pair> IMAGE_STREAMS = {DEPTH, INFRA0, INFRA1, INFRA2,
                                                           COLOR,
                                                           FISHEYE,
-                                                          FISHEYE1, FISHEYE2};
+                                                          FISHEYE1, FISHEYE2, CONFIDENCE};
 
     const std::vector<stream_index_pair> HID_STREAMS = {GYRO, ACCEL, POSE};
 
@@ -50,6 +52,7 @@ namespace realsense2_camera
     {
     public:
         virtual void publishTopics() = 0;
+        virtual void toggleSensors(bool enabled) = 0;
         virtual void registerDynamicReconfigCb(ros::NodeHandle& nh) = 0;
         virtual ~InterfaceRealSenseNode() = default;
     };
@@ -67,6 +70,8 @@ namespace realsense2_camera
         void getDevice(rs2::device_list list);
         virtual void onInit() override;
         void tryGetLogSeverity(rs2_log_severity& severity) const;
+        static std::string parse_usb_port(std::string line);
+        bool toggle_sensor_callback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res);
 
         rs2::device _device;
         std::unique_ptr<InterfaceRealSenseNode> _realSenseNode;
@@ -76,6 +81,8 @@ namespace realsense2_camera
         std::string _device_type;
         bool _initial_reset;
         std::thread _query_thread;
+        bool _is_alive;
+        ros::ServiceServer toggle_sensor_srv;
 
     };
 }//end namespace

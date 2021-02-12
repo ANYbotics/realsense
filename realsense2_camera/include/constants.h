@@ -7,7 +7,7 @@
 
 #define REALSENSE_ROS_MAJOR_VERSION    2
 #define REALSENSE_ROS_MINOR_VERSION    2
-#define REALSENSE_ROS_PATCH_VERSION    11
+#define REALSENSE_ROS_PATCH_VERSION    21
 
 #define STRINGIFY(arg) #arg
 #define VAR_ARG_STRING(arg) STRINGIFY(arg)
@@ -32,14 +32,20 @@ namespace realsense2_camera
     const uint16_t RS460_PID        = 0x0b03; // DS5U
     const uint16_t RS435_RGB_PID    = 0x0b07; // AWGC
     const uint16_t RS435i_RGB_PID   = 0x0B3A; // AWGC_MM
+    const uint16_t RS465_PID        = 0x0b4d; // D465
+    const uint16_t RS416_RGB_PID    = 0x0B52; // F416 RGB
     const uint16_t RS405_PID        = 0x0b0c; // DS5U
+    const uint16_t RS455_PID        = 0x0B5C; // D455
     const uint16_t RS_T265_PID      = 0x0b37; // 
+    const uint16_t RS_L515_PID_PRE_PRQ = 0x0B3D; // 
+    const uint16_t RS_L515_PID      = 0x0B64; // 
     
 
-    const bool ALIGN_DEPTH    = false;
-    const bool POINTCLOUD     = false;
+    const bool ALIGN_DEPTH             = false;
+    const bool POINTCLOUD              = false;
     const bool ALLOW_NO_TEXTURE_POINTS = false;
-    const bool SYNC_FRAMES    = false;
+    const bool ORDERED_POINTCLOUD      = false;
+    const bool SYNC_FRAMES             = false;
 
     const bool PUBLISH_TF        = true;
     const double TF_PUBLISH_RATE = 0; // Static transform
@@ -61,7 +67,7 @@ namespace realsense2_camera
     const bool PUBLISH_ODOM_TF = true;
 
     //* Custom constants.
-    const double      DEFAULT_FIXED_TIME_OFFSET          = 0.0;
+    const double      DEFAULT_FIXED_TIME_OFFSET        = 0.0;
     const std::string DEFAULT_TIMESTAMPING_METHOD      = "baseline";
     const bool        DEFAULT_DISABLE_COLOR_STARTUP    = false;
     //* Custom constants.

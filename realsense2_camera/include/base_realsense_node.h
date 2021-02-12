@@ -116,9 +116,13 @@ namespace realsense2_camera
         diagnostic_updater_.add(frequency_status_);
       }
 
-      void update()
+      void tick()
       {
         frequency_status_.tick();
+      }
+
+      void update()
+      {
         diagnostic_updater_.update();
       }
 
@@ -199,7 +203,7 @@ namespace realsense2_camera
                           rs2::device dev,
                           const std::string& serial_no);
 
-        void toggleSensors(bool enabled);
+        virtual void toggleSensors(bool enabled) override;
         virtual void publishTopics() override;
         virtual void registerDynamicReconfigCb(ros::NodeHandle& nh) override;
         virtual ~BaseRealSenseNode();
@@ -291,6 +295,7 @@ namespace realsense2_camera
         cv::Mat& fix_depth_scale(const cv::Mat& from_image, cv::Mat& to_image);
         void clip_depth(rs2::depth_frame depth_frame, float clipping_dist);
         void updateStreamCalibData(const rs2::video_stream_profile& video_profile);
+        void updateExtrinsicsCalibData(const rs2::video_stream_profile& left_video_profile, const rs2::video_stream_profile& right_video_profile);
         void SetBaseStream();
         void publishStaticTransforms();
         void publishDynamicTransforms();
@@ -331,7 +336,7 @@ namespace realsense2_camera
         rs2_stream rs2_string_to_stream(std::string str);
         void startMonitoring();
         void publish_temperature();
-
+        void publish_frequency_update();
         //* Custom methods
         void setupServices();
         bool toggleColor(bool enabled);
@@ -350,6 +355,8 @@ namespace realsense2_camera
         float _depth_scale_meters;
         float _clipping_distance;
         bool _allow_no_texture_points;
+        bool _ordered_pc;
+
 
         double _linear_accel_cov;
         double _angular_velocity_cov;
@@ -389,9 +396,9 @@ namespace realsense2_camera
         bool _sync_frames;
         bool _pointcloud;
         bool _publish_odom_tf;
-
-        imu_sync_method _imu_sync_method;
         
+        imu_sync_method _imu_sync_method;
+
         //* Custom attributes
         ros::Publisher _timestamping_info_publisher;
         timestamping_method _timestamping_method;
@@ -427,6 +434,9 @@ namespace realsense2_camera
 
         stream_index_pair _base_stream;
         const std::string _namespace;
+
+        sensor_msgs::PointCloud2 _msg_pointcloud;
+        std::vector< unsigned int > _valid_pc_indices;
 
     };//end class
 
