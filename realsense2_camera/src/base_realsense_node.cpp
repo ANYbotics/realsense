@@ -1621,8 +1621,7 @@ bool BaseRealSenseNode::toggleColor(bool enable)
     catch(const rs2::wrong_api_call_sequence_error& ex)
     {
         ROS_DEBUG_STREAM("toggleColor: " << ex.what());
-        // TODO(mw): Remove this after ANYmal D filming.
-        return true;
+        return false;
     }
 
     return true;
