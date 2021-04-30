@@ -341,6 +341,8 @@ namespace realsense2_camera
         void setupServices();
         bool toggleColor(bool enabled);
         bool toggleColorCb(std_srvs::SetBool::Request& request, std_srvs::SetBool::Response& response);
+        bool toggleEmitter(bool enable);
+        bool toggleEmitterCb(std_srvs::SetBool::Request& request, std_srvs::SetBool::Response& response);
         void fetchFrameMetadata(const rs2::frame& frame, FrameMetadata& metadata_container);
         void publishTimestampingInformation(const ros::Time& t, const rs2::frame& frame, const FrameMetadata& metadata, const TimeOffsets& time_offsets);
         //* Custom methods
@@ -404,6 +406,7 @@ namespace realsense2_camera
         timestamping_method _timestamping_method;
         double _fixed_time_offset = 0.0;
         ros::ServiceServer _toggleColorService;
+        ros::ServiceServer _toggleEmitterService;
         bool _disable_color_startup;
         //* Custom attributes
 

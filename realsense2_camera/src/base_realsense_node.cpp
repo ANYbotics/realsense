@@ -1586,6 +1586,7 @@ void BaseRealSenseNode::pose_callback(rs2::frame frame)
 void BaseRealSenseNode::setupServices()
 {
     _toggleColorService = _node_handle.advertiseService("toggleColor", &BaseRealSenseNode::toggleColorCb, this);
+    _toggleEmitterService = _node_handle.advertiseService("toggleEmitter", &BaseRealSenseNode::toggleEmitterCb, this);
 }
 
 bool BaseRealSenseNode::toggleColorCb(std_srvs::SetBool::Request& request, std_srvs::SetBool::Response& response)
@@ -1622,6 +1623,31 @@ bool BaseRealSenseNode::toggleColor(bool enable)
     {
         ROS_DEBUG_STREAM("toggleColor: " << ex.what());
         return false;
+    }
+
+    return true;
+}
+
+bool BaseRealSenseNode::toggleEmitterCb(std_srvs::SetBool::Request& request, std_srvs::SetBool::Response& response)
+{
+    response.success = static_cast<uint8_t>(toggleEmitter(static_cast<bool>(request.data)));
+    return true;
+}
+
+bool BaseRealSenseNode::toggleEmitter(bool enable) {
+    // From https://dev.intelrealsense.com/docs/api-how-to
+
+    auto& depth_sensor = _sensors[DEPTH];
+
+    if (!depth_sensor.supports(RS2_OPTION_EMITTER_ENABLED))
+    {
+        return false;
+    }
+
+    if(enable) {
+        depth_sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 1.f); // Enable emitter
+    } else {
+        depth_sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 0.f); // Disable emitter
     }
 
     return true;
