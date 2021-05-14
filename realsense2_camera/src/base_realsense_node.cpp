@@ -138,6 +138,13 @@ BaseRealSenseNode::BaseRealSenseNode(ros::NodeHandle& nodeHandle,
 
 BaseRealSenseNode::~BaseRealSenseNode()
 {
+    // Support that nodelets are shut down smoothly. Explicit tear down of ROS infrastructure 
+    // ensures that nodelet threads leave ROS-time-dependent sleeps.
+    // Request shutdown of the ROS node.
+    ros::requestShutdown();
+    // Shut down ROS time.
+    ros::Time::shutdown();
+
     // Kill dynamic transform thread
     if (_tf_t)
         _tf_t->join();
