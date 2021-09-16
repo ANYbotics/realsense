@@ -1821,6 +1821,9 @@ void BaseRealSenseNode::frame_callback(rs2::frame frame)
             {
                 timeOffsets.wire_transmission_offset = _fixed_time_offset;                                                                              // sec
                 timestamp_offset = ros::Duration(-1.0 * timeOffsets.wire_transmission_offset);
+                
+                //* Timestamp computation.
+                t = ros::Time::now() + timestamp_offset;
             } else if (_timestamping_method == timestamping_method::varying_offsets)
             {
                 //* Computation of time-varying offsets.
@@ -1828,12 +1831,12 @@ void BaseRealSenseNode::frame_callback(rs2::frame frame)
                 timeOffsets.wire_transmission_offset = _fixed_time_offset;                                                                              // sec
                 timeOffsets.driver_handover_offset = (frame_metadata.driver_arrival_timestamp - frame_metadata.kernel_arrival_timestamp) * 1e-3;        // sec
 
-                //* Time offset = (frame acquisition offset) + (*fixed* transmission offset) + (driver handover offset)
-                timestamp_offset = ros::Duration(-1.0 * (timeOffsets.frame_acquisition_offset + timeOffsets.wire_transmission_offset + timeOffsets.driver_handover_offset));
-            }
+                //* Time offset = (frame acquisition offset) + (*fixed* transmission offset)
+                timestamp_offset = ros::Duration(-1.0 * (timeOffsets.frame_acquisition_offset + timeOffsets.wire_transmission_offset));
 
-            //* Timestamp computation.
-            t = ros::Time::now() + timestamp_offset;
+                //* Timestamp computation.
+                t = ros::Time( (frame_metadata.kernel_arrival_timestamp * 1e-3) ) + timestamp_offset;
+            }
 
             ROS_DEBUG("Timestamp correction = %.17g", timestamp_offset.toSec());
         }
