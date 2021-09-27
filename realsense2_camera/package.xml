@@ -30,6 +30,12 @@
   <depend>any_realsense2_msgs</depend>
   <depend>eigen</depend>
   <depend>std_srvs</depend>
+
+  <!-- Upstream realsense packages that are manually uploaded to the PPAs -->
+  <exec_depend>librealsense2-dkms</exec_depend>
+  <!-- The following also pulls in librealsense2, librealsense2-gl and librealsense2-net -->
+  <exec_depend>librealsense2-utils</exec_depend>
+
 <!--   <test_depend>cmake_code_coverage</test_depend> -->
   <test_depend>gtest</test_depend>
   <export>
