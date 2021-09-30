@@ -96,6 +96,8 @@
 
   <node unless="$(arg external_manager)" pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen" required="$(arg required)"/>
   <node pkg="nodelet" type="nodelet" name="any_realsense2_camera" args="load any_realsense2_camera/RealSenseNodeFactory $(arg manager)" required="$(arg required)">
+  <!-- To launch the nodelet in 'standalone mode', comment the two lines above, and uncomment the one below -->
+  <!-- <node pkg="nodelet" type="nodelet" name="any_realsense2_camera" args="standalone any_realsense2_camera/RealSenseNodeFactory" required="$(arg required)" output="screen"> -->
     <param name="serial_no"                type="str"  value="$(arg serial_no)"/>
     <param name="usb_port_id"              type="str"  value="$(arg usb_port_id)"/>
     <param name="device_type"              type="str"  value="$(arg device_type)"/>

@@ -138,13 +138,6 @@ BaseRealSenseNode::BaseRealSenseNode(ros::NodeHandle& nodeHandle,
 
 BaseRealSenseNode::~BaseRealSenseNode()
 {
-    // Support that nodelets are shut down smoothly. Explicit tear down of ROS infrastructure 
-    // ensures that nodelet threads leave ROS-time-dependent sleeps.
-    // Request shutdown of the ROS node.
-    ros::requestShutdown();
-    // Shut down ROS time.
-    ros::Time::shutdown();
-
     // Kill dynamic transform thread
     if (_tf_t)
         _tf_t->join();
@@ -171,6 +164,11 @@ BaseRealSenseNode::~BaseRealSenseNode()
             }
             catch(const rs2::wrong_api_call_sequence_error& e)
             {
+                ROS_ERROR_STREAM("Caught exception when trying to shutdown RealSense sensor handler: " << e.what());
+            }
+            catch(...)
+            {
+                ROS_ERROR("Caught undefined exception.");
             }
         }
     }
@@ -406,6 +404,10 @@ void BaseRealSenseNode::set_sensor_auto_exposure_roi(rs2::sensor sensor)
     {
         ROS_ERROR_STREAM(e.what());
     }
+    catch(...)
+    {
+      ROS_ERROR("Caught undefined exception.");
+    }
 }
 
 void BaseRealSenseNode::readAndSetDynamicParam(ros::NodeHandle& nh1, std::shared_ptr<ddynamic_reconfigure::DDynamicReconfigure> ddynrec, 
@@ -581,6 +583,10 @@ void BaseRealSenseNode::registerDynamicOption(ros::NodeHandle& nh, rs2::options 
         catch(const std::exception& e)
         {
             std::cerr << e.what() << '\n';
+        }
+        catch(...)
+        {
+          ROS_ERROR("Caught undefined exception.");
         }
         
     }
@@ -935,11 +941,11 @@ void BaseRealSenseNode::setupPublishers()
 
             if (_align_depth && (stream != DEPTH) && (stream != CONFIDENCE) && stream.second < 2)
             {
-                std::stringstream aligned_image_raw, aligned_camera_info;
-                aligned_image_raw << "aligned_depth_to_" << stream_name << "/image_raw";
-                aligned_camera_info << "aligned_depth_to_" << stream_name << "/camera_info";
-
                 std::string aligned_stream_name = "aligned_depth_to_" + stream_name;
+                std::stringstream aligned_image_raw, aligned_camera_info;
+                aligned_image_raw << aligned_stream_name << "/image_raw";
+                aligned_camera_info << aligned_stream_name << "/camera_info";
+
                 std::shared_ptr<FrequencyDiagnostics> frequency_diagnostics(new FrequencyDiagnostics(_fps[stream], aligned_stream_name, _serial_no));
                 _depth_aligned_image_publishers[stream] = {image_transport.advertise(aligned_image_raw.str(), 1), frequency_diagnostics};
                 _depth_aligned_info_publisher[stream] = _node_handle.advertise<sensor_msgs::CameraInfo>(aligned_camera_info.str(), 1);
@@ -1034,6 +1040,10 @@ void BaseRealSenseNode::publishAlignedDepthToOthers(rs2::frameset frames, const 
             {
                 ROS_DEBUG_STREAM("Allocate align filter for:" << rs2_stream_to_string(sip.first) << sip.second);
                 align = (_align[stream_type] = std::make_shared<rs2::align>(stream_type));
+            }
+            catch(...)
+            {
+              ROS_ERROR("Caught undefined exception.");
             }
             rs2::frameset processed = frames.apply_filter(*align);
             std::vector<rs2::frame> frames_to_publish;
@@ -1631,6 +1641,10 @@ bool BaseRealSenseNode::toggleColor(bool enable)
         ROS_DEBUG_STREAM("toggleColor: " << ex.what());
         return false;
     }
+    catch(...)
+    {
+      ROS_ERROR("Caught undefined exception.");
+    }
 
     return true;
 }
@@ -1991,6 +2005,10 @@ void BaseRealSenseNode::frame_callback(rs2::frame frame)
     {
         ROS_ERROR_STREAM("An error has occurred during frame callback: " << ex.what());
     }
+    catch(...)
+    {
+      ROS_ERROR("Caught undefined exception.");
+    }
     _synced_imu_publisher->Resume();
 }; // frame_callback
 
@@ -2268,6 +2286,10 @@ void BaseRealSenseNode::calcAndPublishStaticTransform(const stream_index_pair& s
         {
             throw e;
         }
+    }
+    catch(...)
+    {
+      ROS_ERROR("Caught undefined exception.");
     }
 
     auto Q = rotationMatrixToQuaternion(ex.rotation);
@@ -2589,6 +2611,10 @@ IMUInfo BaseRealSenseNode::getImuInfo(const stream_index_pair& stream_index)
         ROS_DEBUG_STREAM("No Motion Intrinsics available.");
         imuIntrinsics = {{{1,0,0,0},{0,1,0,0},{0,0,1,0}}, {0,0,0}, {0,0,0}};
     }
+    catch(...)
+    {
+      ROS_ERROR("Caught undefined exception.");
+    }
 
     auto index = 0;
     info.frame_id = _optical_frame_id[stream_index];
@@ -2691,6 +2717,8 @@ bool BaseRealSenseNode::getEnabledProfile(const stream_index_pair& stream_index,
 
 void BaseRealSenseNode::startMonitoring()
 {
+
+  //TODO(dlopez) diagnostics function
     for (rs2_option option : _monitor_options)
     {
         _temperature_nodes.push_back({option, std::make_shared<TemperatureDiagnostics>(rs2_option_to_string(option), _serial_no )});
@@ -2729,15 +2757,44 @@ void BaseRealSenseNode::publish_temperature()
             {
                 ROS_DEBUG_STREAM("Failed checking for temperature." << std::endl << e.what());
             }
+            catch(...)
+            {
+              ROS_ERROR("Caught undefined exception.");
+            }
         }
     }
 }
 
 void BaseRealSenseNode::publish_frequency_update()
 {
+    std::chrono::milliseconds timespan(1);
     for (auto &image_publisher : _image_publishers)
     {
+      try {
         image_publisher.second.second->update();
+        std::this_thread::sleep_for(timespan);
+      }
+      catch(const std::exception& e){
+        ROS_DEBUG_STREAM("Failed updating the frequency diagnostics." << std::endl << e.what());
+      }
+      catch(...)
+      {
+        ROS_ERROR("Caught undefined exception.");
+      }
+    }
+    for (auto &image_publisher : _depth_aligned_image_publishers)
+    {
+      try {
+        image_publisher.second.second->update();
+        std::this_thread::sleep_for(timespan);
+      }
+      catch(const std::exception& e){
+        ROS_DEBUG_STREAM("Failed updating the frequency diagnostics." << std::endl << e.what());
+      }
+      catch(...)
+      {
+        ROS_ERROR("Caught undefined exception.");
+      }
     }
 }
 
