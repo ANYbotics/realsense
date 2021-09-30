@@ -71,7 +71,9 @@ class RealSenseNodeFactory : public nodelet::Nodelet {
   static std::string parse_usb_port(std::string line);
   bool toggle_sensor_callback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
   void checkInterfaceStateTimerCb(const ros::WallTimerEvent& /*event*/);
-  void checkInterfaceState(diagnostic_updater::DiagnosticStatusWrapper& stat);
+  void getInterfaceState(diagnostic_updater::DiagnosticStatusWrapper& stat);
+  diagnostic_msgs::DiagnosticStatus getInterfaceStateROSMsg();
+  void getROSDiagnosticsInfo(int8_t& interface_status, std::string& interface_status_msg);
 
   rs2::device _device;
   std::unique_ptr<InterfaceRealSenseNode> _realSenseNode;
@@ -84,10 +86,11 @@ class RealSenseNodeFactory : public nodelet::Nodelet {
   bool _is_alive;
   ros::ServiceServer toggle_sensor_srv;
 
-  //        Interface diagnostics
+  // Interface diagnostics
   std::atomic<State> _interface_state;
   diagnostic_updater::Updater _interface_diagnostics_updater;
   ros::WallTimer _interface_callback_timer;
-  std::string _camera_position;
+  ros::Publisher _interface_status_pub;
+  std::string _camera_name;
 };
 }  // namespace realsense2_camera

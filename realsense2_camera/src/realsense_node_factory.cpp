@@ -251,14 +251,17 @@ void RealSenseNodeFactory::onInit() {
     std::string rosbag_filename("");
     privateNh.param("rosbag_filename", rosbag_filename, std::string(""));
     // Setup interface diagnostics
-    _camera_position = nh.getNamespace();
-    _interface_diagnostics_updater.setHardwareID("depth_camera " + _serial_no + " (" + _camera_position + ")");
-    _interface_diagnostics_updater.add("Interface status checker", this, &RealSenseNodeFactory::checkInterfaceState);
+    _camera_name = nh.getNamespace() + " " + _serial_no;
+    _interface_diagnostics_updater.setHardwareID(_camera_name);
+    _interface_diagnostics_updater.add("Interface status checker", this, &RealSenseNodeFactory::getInterfaceState);
     _interface_diagnostics_updater.broadcast(0, "Starting diagnostics");
     _interface_callback_timer =
         nh.createWallTimer(ros::WallDuration(1.0), &RealSenseNodeFactory::checkInterfaceStateTimerCb, this, false, true);
 
     _interface_state = State::NONE;
+
+    // Setup interface state publisher
+    _interface_status_pub = nh.advertise<diagnostic_msgs::DiagnosticStatus>("interface_status", 1);
 
     if (!rosbag_filename.empty()) {
       {
@@ -368,53 +371,80 @@ void RealSenseNodeFactory::tryGetLogSeverity(rs2_log_severity& severity) const {
   }
 }
 
+/// \brief Timer event that updates the status of the sensor interface in ros diagnostics and in a dedicated topic
+/// \param event ros timer event
 void RealSenseNodeFactory::checkInterfaceStateTimerCb(const ros::WallTimerEvent& /*event*/) {
+  // Update diagnostics
   _interface_diagnostics_updater.update();
+
+  // Publish machine-readable status to a dedicated topic
+  _interface_status_pub.publish(getInterfaceStateROSMsg());
 }
 
-/*!
- * \brief Function that calculates the camera interface diagnostic status.
- *
- * This function reads the driver internal `state` variable and determines the interface status based on it.
- * It is added to the _interface_diag_updater and gets called on every _interface_diag_updater.update()
- * \param stat  diagnostic_updater::DiagnosticStatusWrapper the diagnostic status that will be published by the interface diagnostic updater
- */
-void RealSenseNodeFactory::checkInterfaceState(diagnostic_updater::DiagnosticStatusWrapper& stat) {
-  std::string interface_status_message{};
-  auto interface_status_level{diagnostic_msgs::DiagnosticStatus::ERROR};
+/// \brief Converts the current interface State into a diagnostic_msgs::DiagnosticStatus compatible format
+/// \param interface_status Interface status level
+/// \param interface_status_msg Additional feedback on the interface status
+void RealSenseNodeFactory::getROSDiagnosticsInfo(int8_t& interface_status, std::string& interface_status_msg) {
   switch (_interface_state.load()) {
     case State::NONE:
-      interface_status_level = diagnostic_msgs::DiagnosticStatus::OK;
-      interface_status_message = "Device communication not started yet";
+      interface_status = diagnostic_msgs::DiagnosticStatus::OK;
+      interface_status_msg = "OK - Device communication not started yet";
       break;
     case State::ERROR:
-      interface_status_level = diagnostic_msgs::DiagnosticStatus::ERROR;
-      interface_status_message = "Device communication error";
+      interface_status = diagnostic_msgs::DiagnosticStatus::ERROR;
+      interface_status_msg = "ERROR - Device communication error";
       break;
     case State::STOPPED:
-      interface_status_level = diagnostic_msgs::DiagnosticStatus::ERROR;
-      interface_status_message = "Device communication stopped";
+      interface_status = diagnostic_msgs::DiagnosticStatus::ERROR;
+      interface_status_msg = "ERROR - Device communication stopped";
       break;
     case State::DISCONNECTED:
-      interface_status_level = diagnostic_msgs::DiagnosticStatus::ERROR;
-      interface_status_message = "Device disconnected";
+      interface_status = diagnostic_msgs::DiagnosticStatus::ERROR;
+      interface_status_msg = "ERROR - Device disconnected";
       break;
     case State::CONNECTED:
-      interface_status_level = diagnostic_msgs::DiagnosticStatus::OK;
-      interface_status_message = "Device connected";
+      interface_status = diagnostic_msgs::DiagnosticStatus::OK;
+      interface_status_msg = "OK - Device connected";
       break;
     case State::STARTED:
-      interface_status_level = diagnostic_msgs::DiagnosticStatus::OK;
-      interface_status_message = "Device started";
+      interface_status = diagnostic_msgs::DiagnosticStatus::OK;
+      interface_status_msg = "OK - Device started";
       break;
     case State::DEGRADED:
-      interface_status_level = diagnostic_msgs::DiagnosticStatus::WARN;
-      interface_status_message = "Device communication degraded";
+      interface_status = diagnostic_msgs::DiagnosticStatus::WARN;
+      interface_status_msg = "WARN - Device communication degraded";
       break;
     default:
-      interface_status_level = diagnostic_msgs::DiagnosticStatus::WARN;
-      interface_status_message = "Unknown device connection state";
+      interface_status = diagnostic_msgs::DiagnosticStatus::WARN;
+      interface_status_msg = "WARN - Unknown device connection state";
       break;
   }
+}
+
+/// \brief Function that calculates the realsense interface diagnostic status.
+///
+/// This function reads the driver internal `state` variable and determines the interface status based on it.
+/// It is added to the _interface_diag_updater and gets called on every _interface_diag_updater.update()
+/// \param stat  diagnostic_updater::DiagnosticStatusWrapper the diagnostic status that will be published by the interface diagnostic
+/// updater
+void RealSenseNodeFactory::getInterfaceState(diagnostic_updater::DiagnosticStatusWrapper& stat) {
+  int8_t interface_status_level{diagnostic_msgs::DiagnosticStatus::ERROR};
+  std::string interface_status_message{};
+  getROSDiagnosticsInfo(interface_status_level, interface_status_message);
   stat.summary(interface_status_level, interface_status_message);
+}
+
+/// \brief Populates and returns a diagnostic_msgs::DiagnosticStatus message with the interface status information
+/// \return interface status message ready to be published
+diagnostic_msgs::DiagnosticStatus RealSenseNodeFactory::getInterfaceStateROSMsg() {
+  diagnostic_msgs::DiagnosticStatus msg;
+  int8_t interface_status_level{diagnostic_msgs::DiagnosticStatus::ERROR};
+  std::string interface_status_msg{};
+  getROSDiagnosticsInfo(interface_status_level, interface_status_msg);
+  msg.hardware_id = _camera_name;
+  msg.name = "interface status";
+  msg.level = interface_status_level;
+  msg.message = interface_status_msg;
+
+  return msg;
 }
