@@ -2782,20 +2782,6 @@ void BaseRealSenseNode::publish_frequency_update()
         ROS_ERROR("Caught undefined exception.");
       }
     }
-    for (auto &image_publisher : _depth_aligned_image_publishers)
-    {
-      try {
-        image_publisher.second.second->update();
-        std::this_thread::sleep_for(timespan);
-      }
-      catch(const std::exception& e){
-        ROS_DEBUG_STREAM("Failed updating the frequency diagnostics." << std::endl << e.what());
-      }
-      catch(...)
-      {
-        ROS_ERROR("Caught undefined exception.");
-      }
-    }
 }
 
 TemperatureDiagnostics::TemperatureDiagnostics(std::string name, std::string serial_no)
