@@ -946,8 +946,7 @@ void BaseRealSenseNode::setupPublishers()
                 aligned_image_raw << aligned_stream_name << "/image_raw";
                 aligned_camera_info << aligned_stream_name << "/camera_info";
 
-                std::shared_ptr<FrequencyDiagnostics> frequency_diagnostics(new FrequencyDiagnostics(_fps[stream], aligned_stream_name, _serial_no));
-                _depth_aligned_image_publishers[stream] = {image_transport.advertise(aligned_image_raw.str(), 1), frequency_diagnostics};
+                _depth_aligned_image_publishers[stream] = image_transport.advertise(aligned_image_raw.str(), 1);
                 _depth_aligned_info_publisher[stream] = _node_handle.advertise<sensor_msgs::CameraInfo>(aligned_camera_info.str(), 1);
             }
 
@@ -1029,19 +1028,14 @@ void BaseRealSenseNode::publishAlignedDepthToOthers(rs2::frameset frames, const 
         auto& info_publisher = _depth_aligned_info_publisher.at(sip);
         auto& image_publisher = _depth_aligned_image_publishers.at(sip);
 
-        if(0 != info_publisher.getNumSubscribers() ||
-           0 != image_publisher.first.getNumSubscribers())
-        {
-            std::shared_ptr<rs2::align> align;
-            try{
-                align = _align.at(stream_type);
-            }
-            catch(const std::out_of_range& e)
-            {
-                ROS_DEBUG_STREAM("Allocate align filter for:" << rs2_stream_to_string(sip.first) << sip.second);
-                align = (_align[stream_type] = std::make_shared<rs2::align>(stream_type));
-            }
-            catch(...)
+        if (0 != info_publisher.getNumSubscribers() || 0 != image_publisher.getNumSubscribers()) {
+          std::shared_ptr<rs2::align> align;
+          try {
+            align = _align.at(stream_type);
+          } catch (const std::out_of_range& e) {
+            ROS_DEBUG_STREAM("Allocate align filter for:" << rs2_stream_to_string(sip.first) << sip.second);
+            align = (_align[stream_type] = std::make_shared<rs2::align>(stream_type));
+          } catch(...)
             {
               ROS_ERROR("Caught undefined exception.");
             }
@@ -1057,12 +1051,9 @@ void BaseRealSenseNode::publishAlignedDepthToOthers(rs2::frameset frames, const 
                 }
             }
 
-            publishFrame(frames_to_publish.back(), t, sip,
-                         _depth_aligned_image,
-                         _depth_aligned_info_publisher,
-                         _depth_aligned_image_publishers, _depth_aligned_seq,
-                         _depth_aligned_camera_info, _optical_frame_id,
-                         _depth_aligned_encoding);
+            publishFrameWithoutDiagnostics(frames_to_publish.back(), t, sip, _depth_aligned_image, _depth_aligned_info_publisher,
+                                           _depth_aligned_image_publishers, _depth_aligned_seq, _depth_aligned_camera_info,
+                                           _optical_frame_id, _depth_aligned_encoding);
         }
     }
 }
@@ -2701,17 +2692,72 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
     }
 }
 
-bool BaseRealSenseNode::getEnabledProfile(const stream_index_pair& stream_index, rs2::stream_profile& profile)
-    {
-        // Assuming that all D400 SKUs have depth sensor
-        auto profiles = _enabled_profiles[stream_index];
-        auto it = std::find_if(profiles.begin(), profiles.end(),
-                               [&](const rs2::stream_profile& profile)
-                               { return (profile.stream_type() == stream_index.first); });
-        if (it == profiles.end())
-            return false;
+void BaseRealSenseNode::publishFrameWithoutDiagnostics(rs2::frame f, const ros::Time& t, const stream_index_pair& stream,
+                                                       std::map<stream_index_pair, cv::Mat>& images,
+                                                       const std::map<stream_index_pair, ros::Publisher>& info_publishers,
+                                                       const std::map<stream_index_pair, image_transport::Publisher>& image_publishers,
+                                                       std::map<stream_index_pair, int>& seq,
+                                                       std::map<stream_index_pair, sensor_msgs::CameraInfo>& camera_info,
+                                                       const std::map<stream_index_pair, std::string>& optical_frame_id,
+                                                       const std::map<rs2_stream, std::string>& encoding, bool copy_data_from_frame) {
+  ROS_DEBUG("publishFrame(...)");
+  unsigned int width = 0;
+  unsigned int height = 0;
+  auto bpp = 1;
+  if (f.is<rs2::video_frame>()) {
+    auto image = f.as<rs2::video_frame>();
+    width = image.get_width();
+    height = image.get_height();
+    bpp = image.get_bytes_per_pixel();
+  }
+  auto& image = images[stream];
 
-        profile =  *it;
+  if (copy_data_from_frame) {
+    if (images[stream].size() != cv::Size(width, height)) {
+      image.create(height, width, image.type());
+    }
+    image.data = (uint8_t*)f.get_data();
+  }
+  if (f.is<rs2::depth_frame>()) {
+    image = fix_depth_scale(image, _depth_scaled_image[stream]);
+  }
+
+  ++(seq[stream]);
+  auto& info_publisher = info_publishers.at(stream);
+  auto& image_publisher = image_publishers.at(stream);
+
+  if (0 != info_publisher.getNumSubscribers() || 0 != image_publisher.getNumSubscribers()) {
+    sensor_msgs::ImagePtr img;
+    img = cv_bridge::CvImage(std_msgs::Header(), encoding.at(stream.first), image).toImageMsg();
+    img->width = width;
+    img->height = height;
+    img->is_bigendian = false;
+    img->step = width * bpp;
+    img->header.frame_id = optical_frame_id.at(stream);
+    img->header.stamp = t;
+    img->header.seq = seq[stream];
+
+    auto& cam_info = camera_info.at(stream);
+    if (cam_info.width != width) {
+      updateStreamCalibData(f.get_profile().as<rs2::video_stream_profile>());
+    }
+    cam_info.header.stamp = t;
+    cam_info.header.seq = seq[stream];
+    info_publisher.publish(cam_info);
+
+    image_publisher.publish(img);
+    ROS_DEBUG("%s stream published", rs2_stream_to_string(f.get_profile().stream_type()));
+  }
+}
+
+bool BaseRealSenseNode::getEnabledProfile(const stream_index_pair& stream_index, rs2::stream_profile& profile) {
+  // Assuming that all D400 SKUs have depth sensor
+  auto profiles = _enabled_profiles[stream_index];
+  auto it = std::find_if(profiles.begin(), profiles.end(),
+                         [&](const rs2::stream_profile& profile) { return (profile.stream_type() == stream_index.first); });
+  if (it == profiles.end()) return false;
+
+  profile =  *it;
         return true;
     }
 

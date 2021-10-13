@@ -305,16 +305,20 @@ namespace realsense2_camera
         Extrinsics rsExtrinsicsToMsg(const rs2_extrinsics& extrinsics, const std::string& frame_id) const;
 
         IMUInfo getImuInfo(const stream_index_pair& stream_index);
-        void publishFrame(rs2::frame f, const ros::Time& t,
-                          const stream_index_pair& stream,
-                          std::map<stream_index_pair, cv::Mat>& images,
+        void publishFrame(rs2::frame f, const ros::Time& t, const stream_index_pair& stream, std::map<stream_index_pair, cv::Mat>& images,
                           const std::map<stream_index_pair, ros::Publisher>& info_publishers,
                           const std::map<stream_index_pair, ImagePublisherWithFrequencyDiagnostics>& image_publishers,
-                          std::map<stream_index_pair, int>& seq,
-                          std::map<stream_index_pair, sensor_msgs::CameraInfo>& camera_info,
+                          std::map<stream_index_pair, int>& seq, std::map<stream_index_pair, sensor_msgs::CameraInfo>& camera_info,
                           const std::map<stream_index_pair, std::string>& optical_frame_id,
-                          const std::map<rs2_stream, std::string>& encoding,
-                          bool copy_data_from_frame = true);
+                          const std::map<rs2_stream, std::string>& encoding, bool copy_data_from_frame = true);
+        void publishFrameWithoutDiagnostics(rs2::frame f, const ros::Time& t, const stream_index_pair& stream,
+                                            std::map<stream_index_pair, cv::Mat>& images,
+                                            const std::map<stream_index_pair, ros::Publisher>& info_publishers,
+                                            const std::map<stream_index_pair, image_transport::Publisher>& image_publishers,
+                                            std::map<stream_index_pair, int>& seq,
+                                            std::map<stream_index_pair, sensor_msgs::CameraInfo>& camera_info,
+                                            const std::map<stream_index_pair, std::string>& optical_frame_id,
+                                            const std::map<rs2_stream, std::string>& encoding, bool copy_data_from_frame = true);
         bool getEnabledProfile(const stream_index_pair& stream_index, rs2::stream_profile& profile);
 
         void publishAlignedDepthToOthers(rs2::frameset frames, const ros::Time& t);
@@ -324,7 +328,7 @@ namespace realsense2_camera
         void ImuMessage_AddDefaultValues(sensor_msgs::Imu& imu_msg);
         void FillImuData_LinearInterpolation(const CimuData imu_data, std::deque<sensor_msgs::Imu>& imu_msgs);
         void imu_callback(rs2::frame frame);
-        void imu_callback_sync(rs2::frame frame, imu_sync_method sync_method=imu_sync_method::COPY);
+        void imu_callback_sync(rs2::frame frame, imu_sync_method sync_method = imu_sync_method::COPY);
         void pose_callback(rs2::frame frame);
         void multiple_message_callback(rs2::frame frame, imu_sync_method sync_method);
         void frame_callback(rs2::frame frame);
@@ -423,7 +427,7 @@ namespace realsense2_camera
         std::map<stream_index_pair, sensor_msgs::CameraInfo> _depth_aligned_camera_info;
         std::map<stream_index_pair, int> _depth_aligned_seq;
         std::map<stream_index_pair, ros::Publisher> _depth_aligned_info_publisher;
-        std::map<stream_index_pair, ImagePublisherWithFrequencyDiagnostics> _depth_aligned_image_publishers;
+        std::map<stream_index_pair, image_transport::Publisher> _depth_aligned_image_publishers;
         std::map<stream_index_pair, ros::Publisher> _depth_to_other_extrinsics_publishers;
         std::map<stream_index_pair, rs2_extrinsics> _depth_to_other_extrinsics;
         std::map<std::string, rs2::region_of_interest> _auto_exposure_roi;
