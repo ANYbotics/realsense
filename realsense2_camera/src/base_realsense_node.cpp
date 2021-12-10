@@ -2764,11 +2764,14 @@ bool BaseRealSenseNode::getEnabledProfile(const stream_index_pair& stream_index,
 void BaseRealSenseNode::startMonitoring()
 {
 
-  //TODO(dlopez) diagnostics function
     for (rs2_option option : _monitor_options)
     {
         _temperature_nodes.push_back({option, std::make_shared<TemperatureDiagnostics>(rs2_option_to_string(option), _serial_no )});
     }
+
+    // Start of custom ANYbotics code
+    _ir_emitter_diag = std::make_shared<IREmitterDiagnostics>(_serial_no);
+    // End of custom ANYbotics code
 
     int time_interval(1000);
     std::function<void()> func = [this, time_interval](){
@@ -2778,6 +2781,10 @@ void BaseRealSenseNode::startMonitoring()
             _cv.wait_for(lock, std::chrono::milliseconds(time_interval), [&]{return !_is_running;});
             if (_is_running)
             {
+                // Start of custom ANYbotics code
+                publish_ir_emitter();
+                // End of custom ANYbotics code
+
                 publish_temperature();
                 publish_frequency_update();
             }
@@ -2805,11 +2812,40 @@ void BaseRealSenseNode::publish_temperature()
             }
             catch(...)
             {
-              ROS_ERROR("Caught undefined exception.");
+                ROS_ERROR("Caught undefined exception.");
             }
         }
     }
 }
+
+// Start of custom ANYbotics code
+void BaseRealSenseNode::publish_ir_emitter()
+{
+  try
+    {
+      rs2::options sensor(_sensors[_base_stream]);
+      bool laser_enabled = sensor.get_option(RS2_OPTION_EMITTER_ENABLED);
+      long long laser_power = sensor.get_option(RS2_OPTION_LASER_POWER);
+
+        if (_ir_emitter_diag)
+        {
+           _ir_emitter_diag->update(laser_enabled, laser_power);
+        }
+        else
+        {
+           ROS_WARN("IR emitter status diagnostics not initialized");
+        }
+    }
+    catch(const std::exception& e)
+    {
+        ROS_WARN_STREAM("Failed checking for IR emitter status." << std::endl << e.what());
+    }
+    catch(...)
+    {
+       ROS_ERROR("Caught undefined exception.");
+    }
+}
+// End of custom ANYbotics code
 
 void BaseRealSenseNode::publish_frequency_update()
 {
@@ -2831,13 +2867,36 @@ void BaseRealSenseNode::publish_frequency_update()
 }
 
 TemperatureDiagnostics::TemperatureDiagnostics(std::string name, std::string serial_no)
-    {
-        _updater.add(name, this, &TemperatureDiagnostics::diagnostics);
-        _updater.setHardwareID(serial_no);
-    }
+{
+    _updater.add(name, this, &TemperatureDiagnostics::diagnostics);
+    _updater.setHardwareID(serial_no);
+}
 
 void TemperatureDiagnostics::diagnostics(diagnostic_updater::DiagnosticStatusWrapper& status)
 {
-        status.summary(0, "OK");
-        status.add("Index", _crnt_temp);
+    status.summary(0, "OK");
+    status.add("Temperature", _crnt_temp);
 }
+
+// Start of custom ANYbotics code
+IREmitterDiagnostics::IREmitterDiagnostics(std::string serial_no)
+{
+    _updater.add("IR emitter status", this, &IREmitterDiagnostics::diagnostics);
+    _updater.setHardwareID(serial_no);
+}
+
+void IREmitterDiagnostics::diagnostics(diagnostic_updater::DiagnosticStatusWrapper& status)
+{
+    if (!_laser_enabled || _laser_power == 0)
+    {
+        status.summary(2, "ERROR - IR emitter disabled");
+    }
+    else
+    {
+        status.summary(0, "OK");
+    }
+    status.add("Laser enabled", _laser_enabled);
+    status.add("Laser power", _laser_power);
+}
+
+// End of custom ANYbotics code

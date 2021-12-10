@@ -150,6 +150,28 @@ namespace realsense2_camera
 
     };
 
+    // Start of custom ANYbotics code
+    class IREmitterDiagnostics
+    {
+        public:
+            IREmitterDiagnostics(std::string serial_no);
+            void diagnostics(diagnostic_updater::DiagnosticStatusWrapper& status);
+
+            void update(bool laser_enabled, long long laser_power)
+            {
+                _laser_enabled = laser_enabled;
+                _laser_power = laser_power;
+                _updater.update();
+            }
+
+        private:
+            bool _laser_enabled;
+            long long _laser_power;
+            diagnostic_updater::Updater _updater;
+
+    };
+    // End of custom ANYbotics code
+
     class NamedFilter
     {
         public:
@@ -438,6 +460,11 @@ namespace realsense2_camera
         std::vector< OptionTemperatureDiag > _temperature_nodes;
         std::shared_ptr<std::thread> _monitoring_t;
         mutable std::condition_variable _cv;
+
+        // Start of custom ANYbotics code
+        void publish_ir_emitter();
+        std::shared_ptr<IREmitterDiagnostics> _ir_emitter_diag;
+        // End of custom ANYbotics code
 
         stream_index_pair _base_stream;
         const std::string _namespace;
