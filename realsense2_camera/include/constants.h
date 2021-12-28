@@ -71,8 +71,9 @@ namespace realsense2_camera
     const std::string DEFAULT_TIMESTAMPING_METHOD      = "baseline";
     const bool        DEFAULT_DISABLE_COLOR_STARTUP    = false;
     //* Custom constants.
-
-    const std::string DEFAULT_BASE_FRAME_ID            = "camera_link";
+    // Start of custom ANYbotics code
+    const std::string DEFAULT_FRAME_ID_PREFIX          = "camera_";
+    // End of custom ANYbotics code
     const std::string DEFAULT_ODOM_FRAME_ID            = "odom_frame";
     const std::string DEFAULT_DEPTH_FRAME_ID           = "camera_depth_frame";
     const std::string DEFAULT_INFRA1_FRAME_ID          = "camera_infra1_frame";

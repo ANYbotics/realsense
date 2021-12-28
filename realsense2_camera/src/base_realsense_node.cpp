@@ -11,10 +11,13 @@ using namespace realsense2_camera;
 using namespace ddynamic_reconfigure;
 
 // stream_index_pair sip{stream_type, stream_index};
+// Start of custom ANYbotics code
 #define STREAM_NAME(sip) (static_cast<std::ostringstream&&>(std::ostringstream() << _stream_name[sip.first] << ((sip.second>0) ? std::to_string(sip.second) : ""))).str()
-#define FRAME_ID(sip) (static_cast<std::ostringstream&&>(std::ostringstream() << "camera_" << STREAM_NAME(sip) << "_frame")).str()
-#define OPTICAL_FRAME_ID(sip) (static_cast<std::ostringstream&&>(std::ostringstream() << "camera_" << STREAM_NAME(sip) << "_optical_frame")).str()
-#define ALIGNED_DEPTH_TO_FRAME_ID(sip) (static_cast<std::ostringstream&&>(std::ostringstream() << "camera_aligned_depth_to_" << STREAM_NAME(sip) << "_frame")).str()
+#define FRAME_ID(sip) (static_cast<std::ostringstream&&>(std::ostringstream() << _frame_id_prefix << STREAM_NAME(sip) << "_frame")).str()
+#define OPTICAL_FRAME_ID(sip) (static_cast<std::ostringstream&&>(std::ostringstream() << _frame_id_prefix << STREAM_NAME(sip) << "_optical_frame")).str()
+#define ALIGNED_DEPTH_TO_FRAME_ID(sip) (static_cast<std::ostringstream&&>(std::ostringstream() << _frame_id_prefix << STREAM_NAME(sip) << "_frame")).str()
+#define BASE_FRAME_ID() (static_cast<std::ostringstream&&>(std::ostringstream() << "camera_parent")).str()
+// End of custom ANYbotics code
 
 SyncedImuPublisher::SyncedImuPublisher(ros::Publisher imu_publisher, std::size_t waiting_list_size):
             _publisher(imu_publisher), _pause_mode(false),
@@ -721,8 +724,12 @@ void BaseRealSenseNode::getParameters()
         _pnh.param(param_name, _enable[stream], ENABLE_IMU);
         ROS_DEBUG_STREAM("_enable[" << _stream_name[stream.first] << "]:" << _enable[stream]);
     }
-    _pnh.param("base_frame_id", _base_frame_id, DEFAULT_BASE_FRAME_ID);
+
+    // Start of custom ANYbotics code
+    _pnh.param("frame_id_prefix", _frame_id_prefix, DEFAULT_FRAME_ID_PREFIX);
+    _pnh.param("base_frame_id", _base_frame_id, BASE_FRAME_ID());
     _pnh.param("odom_frame_id", _odom_frame_id, DEFAULT_ODOM_FRAME_ID);
+    // End of custom ANYbotics code
 
     std::vector<stream_index_pair> streams(IMAGE_STREAMS);
     streams.insert(streams.end(), HID_STREAMS.begin(), HID_STREAMS.end());

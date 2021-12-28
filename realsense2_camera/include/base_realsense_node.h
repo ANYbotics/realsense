@@ -270,6 +270,9 @@ namespace realsense2_camera
         };
 
         bool _is_running;
+        // Start of custom ANYbotics code
+        std::string _frame_id_prefix;
+        // End of custom ANYbotics code
         std::string _base_frame_id;
         std::string _odom_frame_id;
         std::map<stream_index_pair, std::string> _frame_id;
