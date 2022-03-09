@@ -16,7 +16,7 @@ using namespace ddynamic_reconfigure;
 #define FRAME_ID(sip) (static_cast<std::ostringstream&&>(std::ostringstream() << _frame_id_prefix << STREAM_NAME(sip) << "_frame")).str()
 #define OPTICAL_FRAME_ID(sip) (static_cast<std::ostringstream&&>(std::ostringstream() << _frame_id_prefix << STREAM_NAME(sip) << "_optical_frame")).str()
 #define ALIGNED_DEPTH_TO_FRAME_ID(sip) (static_cast<std::ostringstream&&>(std::ostringstream() << _frame_id_prefix << STREAM_NAME(sip) << "_frame")).str()
-#define BASE_FRAME_ID() (static_cast<std::ostringstream&&>(std::ostringstream() << "camera_parent")).str()
+#define BASE_FRAME_ID() (static_cast<std::ostringstream&&>(std::ostringstream() << _frame_id_prefix << "camera_parent")).str()
 // End of custom ANYbotics code
 
 SyncedImuPublisher::SyncedImuPublisher(ros::Publisher imu_publisher, std::size_t waiting_list_size):
