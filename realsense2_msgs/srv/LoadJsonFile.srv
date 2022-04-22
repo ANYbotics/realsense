@@ -1,0 +1,4 @@
+string json_file_path      # The path to the json file.
+---
+bool success               # indicate successful run of the service
+string message             # informational, e.g. for error messages

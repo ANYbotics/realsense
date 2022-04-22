@@ -1602,6 +1602,7 @@ void BaseRealSenseNode::setupServices()
 {
     _toggleColorService = _node_handle.advertiseService("toggleColor", &BaseRealSenseNode::toggleColorCb, this);
     _toggleEmitterService = _node_handle.advertiseService("toggleEmitter", &BaseRealSenseNode::toggleEmitterCb, this);
+    _loadJsonFileService = _node_handle.advertiseService("loadJsonFile", &BaseRealSenseNode::loadJsonFileServiceCb, this);
 }
 
 bool BaseRealSenseNode::toggleColorCb(std_srvs::SetBool::Request& request, std_srvs::SetBool::Response& response)
@@ -1644,6 +1645,48 @@ bool BaseRealSenseNode::toggleColor(bool enable)
       ROS_ERROR("Caught undefined exception.");
     }
 
+    return true;
+}
+
+bool BaseRealSenseNode::loadJsonFileServiceCb(any_realsense2_msgs::LoadJsonFile::Request& request, any_realsense2_msgs::LoadJsonFile::Response& response){
+    std::string jsonFilePath{request.json_file_path};
+    response.success = 0u;
+    std::string message{};
+    if (!jsonFilePath.empty())
+    {
+        if (_dev.is<rs2::serializable_device>())
+        {
+            std::stringstream ss;
+            std::ifstream in(jsonFilePath);
+            if (in.is_open())
+            {
+                ss << in.rdbuf();
+                std::string json_file_content = ss.str();
+
+                auto adv = _dev.as<rs2::serializable_device>();
+                adv.load_json(json_file_content);
+                message = "JSON file is loaded! (" + jsonFilePath + ")";
+                response.message = message;
+                response.success = 1u;
+                ROS_INFO_STREAM(message);
+          }
+          else{
+              message = "JSON file provided doesn't exist! (" + jsonFilePath + ")";
+              response.message = message;
+              ROS_WARN_STREAM(message);
+          }
+      }
+      else{
+          message = "Device does not support advanced settings!";
+          response.message = message;
+          ROS_WARN_STREAM(message);
+      }
+    }
+    else{
+        message = "JSON file is not provided";
+        response.message = message;
+        ROS_ERROR_STREAM(message);
+    }
     return true;
 }
 

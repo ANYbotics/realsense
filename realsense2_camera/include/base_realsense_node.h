@@ -20,6 +20,7 @@
 #include <any_realsense2_msgs/FrameMetadataMsg.h>
 #include <any_realsense2_msgs/TimeOffsetsMsg.h>
 #include <any_realsense2_msgs/TimestampingInfoMsg.h>
+#include <any_realsense2_msgs/LoadJsonFile.h>
 
 #include <condition_variable>
 #include <queue>
@@ -372,6 +373,7 @@ namespace realsense2_camera
         bool toggleColorCb(std_srvs::SetBool::Request& request, std_srvs::SetBool::Response& response);
         bool toggleEmitter(bool enable);
         bool toggleEmitterCb(std_srvs::SetBool::Request& request, std_srvs::SetBool::Response& response);
+        bool loadJsonFileServiceCb(any_realsense2_msgs::LoadJsonFile::Request& request, any_realsense2_msgs::LoadJsonFile::Response& response);
         void fetchFrameMetadata(const rs2::frame& frame, FrameMetadata& metadata_container);
         void publishTimestampingInformation(const ros::Time& t, const rs2::frame& frame, const FrameMetadata& metadata, const TimeOffsets& time_offsets);
         //* Custom methods
@@ -436,6 +438,7 @@ namespace realsense2_camera
         double _fixed_time_offset = 0.0;
         ros::ServiceServer _toggleColorService;
         ros::ServiceServer _toggleEmitterService;
+        ros::ServiceServer _loadJsonFileService;
         bool _disable_color_startup;
         //* Custom attributes
 
