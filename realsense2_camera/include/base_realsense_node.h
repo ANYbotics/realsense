@@ -16,11 +16,14 @@
 #include <tf/transform_broadcaster.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 
+/** Custom messages and services **/
 #include <std_srvs/SetBool.h>
+#include <std_srvs/Trigger.h>
 #include <any_realsense2_msgs/FrameMetadataMsg.h>
 #include <any_realsense2_msgs/TimeOffsetsMsg.h>
 #include <any_realsense2_msgs/TimestampingInfoMsg.h>
 #include <any_realsense2_msgs/LoadJsonFile.h>
+/** Custom messages **/
 
 #include <condition_variable>
 #include <queue>
@@ -369,6 +372,7 @@ namespace realsense2_camera
         void publish_frequency_update();
         //* Custom methods
         void setupServices();
+        bool self_calibration_callback(std_srvs::Trigger::Request& request, std_srvs::Trigger::Response& response);
         bool toggleColor(bool enabled);
         bool toggleColorCb(std_srvs::SetBool::Request& request, std_srvs::SetBool::Response& response);
         bool toggleEmitter(bool enable);
@@ -439,6 +443,7 @@ namespace realsense2_camera
         ros::ServiceServer _toggleColorService;
         ros::ServiceServer _toggleEmitterService;
         ros::ServiceServer _loadJsonFileService;
+        ros::ServiceServer _self_calibration_server;
         bool _disable_color_startup;
         //* Custom attributes
 

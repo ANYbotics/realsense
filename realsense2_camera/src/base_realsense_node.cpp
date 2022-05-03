@@ -6,6 +6,8 @@
 #include <cctype>
 #include <mutex>
 
+#include "realsense_self_calibration.h"
+
 using namespace any_realsense2_msgs;
 using namespace realsense2_camera;
 using namespace ddynamic_reconfigure;
@@ -186,7 +188,7 @@ void BaseRealSenseNode::toggleSensors(bool enabled)
     for (const std::pair<stream_index_pair, std::vector<rs2::stream_profile>>& profile : _enabled_profiles)
     {
         std::string module_name = _sensors[profile.first].get_info(RS2_CAMERA_INFO_NAME);
-        ROS_INFO_STREAM("insert " << rs2_stream_to_string(profile.second.begin()->stream_type())
+        ROS_DEBUG_STREAM("insert " << rs2_stream_to_string(profile.second.begin()->stream_type())
           << " to " << module_name);
         profiles[module_name].insert(profiles[module_name].begin(),
                                         profile.second.begin(),
@@ -1598,13 +1600,29 @@ void BaseRealSenseNode::pose_callback(rs2::frame frame)
     }
 }
 
+/** Service setup **/
 void BaseRealSenseNode::setupServices()
 {
+    _self_calibration_server = _node_handle.advertiseService("self_calibrate", &BaseRealSenseNode::self_calibration_callback, this);
     _toggleColorService = _node_handle.advertiseService("toggleColor", &BaseRealSenseNode::toggleColorCb, this);
     _toggleEmitterService = _node_handle.advertiseService("toggleEmitter", &BaseRealSenseNode::toggleEmitterCb, this);
     _loadJsonFileService = _node_handle.advertiseService("loadJsonFile", &BaseRealSenseNode::loadJsonFileServiceCb, this);
 }
+/** Service setup **/
 
+/** Self-calibration **/
+bool BaseRealSenseNode::self_calibration_callback(std_srvs::Trigger::Request& request, std_srvs::Trigger::Response& response)
+{
+    ROS_INFO("Self calibration requst has been received.");
+    toggleSensors(false);
+    response.success = static_cast<uint8_t>(run_self_calibration(_dev));
+    toggleSensors(true);
+    ROS_INFO("Self calibration request has been addressed.");
+    return true;
+}
+/** Self-calibration **/
+
+/** Toggle color **/
 bool BaseRealSenseNode::toggleColorCb(std_srvs::SetBool::Request& request, std_srvs::SetBool::Response& response)
 {
     response.success = static_cast<uint8_t>(toggleColor(static_cast<bool>(request.data)));
@@ -1695,6 +1713,7 @@ bool BaseRealSenseNode::toggleEmitterCb(std_srvs::SetBool::Request& request, std
     response.success = static_cast<uint8_t>(toggleEmitter(static_cast<bool>(request.data)));
     return true;
 }
+/** Toggle color **/
 
 bool BaseRealSenseNode::toggleEmitter(bool enable) {
     // From https://dev.intelrealsense.com/docs/api-how-to
