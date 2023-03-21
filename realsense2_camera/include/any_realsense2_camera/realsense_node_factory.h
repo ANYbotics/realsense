@@ -21,9 +21,9 @@
 #include <any_librealsense2/rs.hpp>
 #include <any_librealsense2/rs_advanced_mode.hpp>
 
+#include <any_realsense2_camera/constants.h>
 #include <any_realsense2_msgs/Extrinsics.h>
 #include <any_realsense2_msgs/IMUInfo.h>
-#include <constants.h>
 
 using namespace any_realsense2_msgs;
 

@@ -1,7 +1,7 @@
 // License: Apache 2.0. See LICENSE file in root directory.
 // Copyright(c) 2020 Intel Corporation. All Rights Reserved.
 
-#include "realsense_self_calibration.h"
+#include "any_realsense2_camera/realsense_self_calibration.h"
 
 #include <ros/console.h>
 

@@ -82,14 +82,14 @@ catkin_package(
     )
 
 add_library(${PROJECT_NAME}
-    include/constants.h
-    include/realsense_node_factory.h
-    include/base_realsense_node.h
-    include/t265_realsense_node.h
-    src/realsense_node_factory.cpp
-    src/base_realsense_node.cpp
-    src/t265_realsense_node.cpp
-    src/realsense_self_calibration.cpp
+  include/${PROJECT_NAME}/constants.h
+  include/${PROJECT_NAME}/realsense_node_factory.h
+  include/${PROJECT_NAME}/base_realsense_node.h
+  include/${PROJECT_NAME}/t265_realsense_node.h
+  src/${PROJECT_NAME}/realsense_node_factory.cpp
+  src/${PROJECT_NAME}/base_realsense_node.cpp
+  src/${PROJECT_NAME}/t265_realsense_node.cpp
+  src/${PROJECT_NAME}/realsense_self_calibration.cpp
     )
 
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
@@ -112,7 +112,7 @@ install(TARGETS ${PROJECT_NAME}
     )
 
 # Install header files
-install(DIRECTORY include/
+install(DIRECTORY include/${PROJECT_NAME}/
     DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
     )
 

@@ -1,4 +1,4 @@
-#include "../include/base_realsense_node.h"
+#include "any_realsense2_camera/base_realsense_node.h"
 
 #include "assert.h"
 #include <boost/algorithm/string.hpp>
@@ -6,7 +6,7 @@
 #include <cctype>
 #include <mutex>
 
-#include "realsense_self_calibration.h"
+#include "any_realsense2_camera/realsense_self_calibration.h"
 
 using namespace any_realsense2_msgs;
 using namespace realsense2_camera;

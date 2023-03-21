@@ -1,7 +1,7 @@
 // License: Apache 2.0. See LICENSE file in root directory.
 // Copyright(c) 2017 Intel Corporation. All Rights Reserved
 
-#include "../include/realsense_node_factory.h"
+#include "any_realsense2_camera/realsense_node_factory.h"
 #include <signal.h>
 #include <condition_variable>
 #include <iostream>
@@ -9,8 +9,8 @@
 #include <mutex>
 #include <regex>
 #include <thread>
-#include "../include/base_realsense_node.h"
-#include "../include/t265_realsense_node.h"
+#include "any_realsense2_camera/base_realsense_node.h"
+#include "any_realsense2_camera/t265_realsense_node.h"
 
 using namespace any_realsense2_msgs;
 using namespace realsense2_camera;
