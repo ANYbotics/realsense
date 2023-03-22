@@ -169,7 +169,7 @@ BaseRealSenseNode::~BaseRealSenseNode()
             }
             catch(const rs2::wrong_api_call_sequence_error& e)
             {
-                ROS_ERROR_STREAM("Caught exception when trying to shutdown RealSense sensor handler: " << e.what());
+                ROS_WARN_STREAM("Caught exception when trying to shutdown RealSense sensor handler: " << e.what());
             }
             catch(...)
             {
