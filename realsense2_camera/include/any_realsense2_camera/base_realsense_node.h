@@ -373,6 +373,8 @@ namespace realsense2_camera
         //* Custom methods
         void setupServices();
         bool self_calibration_callback(std_srvs::Trigger::Request& request, std_srvs::Trigger::Response& response);
+        bool calibration_health_callback(std_srvs::Trigger::Request& request, std_srvs::Trigger::Response& response);
+        bool restore_factory_calibration_callback(std_srvs::Trigger::Request& request, std_srvs::Trigger::Response& response);
         bool toggleColor(bool enabled);
         bool toggleColorCb(std_srvs::SetBool::Request& request, std_srvs::SetBool::Response& response);
         bool toggleEmitter(bool enable);
@@ -442,6 +444,8 @@ namespace realsense2_camera
         double _fixed_time_offset = 0.0;
         ros::ServiceServer _toggleColorService;
         ros::ServiceServer _toggleEmitterService;
+        ros::ServiceServer _calibration_health_server;
+        ros::ServiceServer _factory_calibration_server;
         ros::ServiceServer _loadJsonFileService;
         ros::ServiceServer _self_calibration_server;
         bool _disable_color_startup;

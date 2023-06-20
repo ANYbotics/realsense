@@ -21,6 +21,9 @@ find_package(catkin REQUIRED
     )
     
 find_package(Eigen3 REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(jsoncpp jsoncpp REQUIRED)
+find_package(Boost REQUIRED COMPONENTS filesystem)
 
 if(BUILD_WITH_OPENMP)
     find_package(OpenMP)
@@ -55,6 +58,7 @@ set(CMAKE_CXX_FLAGS "-fPIE -fPIC -std=c++11 -D_FORTIFY_SOURCE=2 -fstack-protecto
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED true)
 include_directories(
     include
+    ${jsoncpp_INCLUDE_DIRS}
     SYSTEM
         ${catkin_INCLUDE_DIRS}
         ${EIGEN3_INCLUDE_DIR}
@@ -79,6 +83,9 @@ catkin_package(
         ddynamic_reconfigure
         nav_msgs
         std_srvs
+    DEPENDS
+        jsoncpp
+        Boost
     )
 
 add_library(${PROJECT_NAME}
@@ -95,12 +102,15 @@ add_library(${PROJECT_NAME}
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 
 target_include_directories(${PROJECT_NAME}
+  SYSTEM PUBLIC ${Boost_INCLUDE_DIRS}
   PRIVATE ${realsense_INCLUDE_DIR}
 )
 
 target_link_libraries(${PROJECT_NAME}
     ${catkin_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
+    ${jsoncpp_LIBRARIES}
+    ${Boost_LIBRARIES}
     pthread
     )
 

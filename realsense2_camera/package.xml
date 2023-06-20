@@ -15,22 +15,24 @@
   <author email="doron.hirshberg@intel.com">Doron Hirshberg</author>
   <buildtool_depend>catkin</buildtool_depend>
 <!--   <build_depend>cmake_clang_tools</build_depend> -->
-  <depend>image_transport</depend>
+  <depend>any_librealsense2</depend>
+  <depend>any_realsense2_msgs</depend>
+  <depend>boost</depend>
   <depend>cv_bridge</depend>
-  <depend>nav_msgs</depend>
-  <depend>nodelet</depend>  
+  <depend>ddynamic_reconfigure</depend>
+  <depend>diagnostic_updater</depend>
+  <depend>eigen</depend>
   <depend>genmsg</depend>
+  <depend>image_transport</depend>
+  <depend>libjsoncpp-dev</depend>
+  <depend>message_runtime</depend>
+  <depend>nav_msgs</depend>
+  <depend>nodelet</depend>
   <depend>roscpp</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
-  <depend>message_runtime</depend>
-  <depend>tf</depend>
-  <depend>ddynamic_reconfigure</depend>
-  <depend>diagnostic_updater</depend>
-  <depend>any_librealsense2</depend>
-  <depend>any_realsense2_msgs</depend>
-  <depend>eigen</depend>
   <depend>std_srvs</depend>
+  <depend>tf</depend>
 
   <!-- Upstream realsense packages that are manually uploaded to the PPAs -->
   <exec_depend>librealsense2-dkms</exec_depend>

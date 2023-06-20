@@ -1604,6 +1604,8 @@ void BaseRealSenseNode::pose_callback(rs2::frame frame)
 void BaseRealSenseNode::setupServices()
 {
     _self_calibration_server = _node_handle.advertiseService("self_calibrate", &BaseRealSenseNode::self_calibration_callback, this);
+    _calibration_health_server = _node_handle.advertiseService("get_calibration_health", &BaseRealSenseNode::calibration_health_callback, this);
+    _factory_calibration_server = _node_handle.advertiseService("restore_factory_calibration", &BaseRealSenseNode::restore_factory_calibration_callback, this);
     _toggleColorService = _node_handle.advertiseService("toggleColor", &BaseRealSenseNode::toggleColorCb, this);
     _toggleEmitterService = _node_handle.advertiseService("toggleEmitter", &BaseRealSenseNode::toggleEmitterCb, this);
     _loadJsonFileService = _node_handle.advertiseService("loadJsonFile", &BaseRealSenseNode::loadJsonFileServiceCb, this);
@@ -1613,14 +1615,61 @@ void BaseRealSenseNode::setupServices()
 /** Self-calibration **/
 bool BaseRealSenseNode::self_calibration_callback(std_srvs::Trigger::Request& request, std_srvs::Trigger::Response& response)
 {
-    ROS_INFO("Self calibration requst has been received.");
+    ROS_INFO("Self calibration request has been received.");
     toggleSensors(false);
-    response.success = static_cast<uint8_t>(run_self_calibration(_dev));
+    float healthScore {0.0f};
+    response.success = static_cast<uint8_t>(run_self_calibration(_dev, healthScore, true));
+    response.message = "Self calibration health is " + std::to_string(healthScore) + ".";
     toggleSensors(true);
+    if (!response.success){
+        response.message = "Self calibration failed. Calibration health is " + std::to_string(healthScore) + ".";
+        return true;
+    }
+
+    if (healthScore < self_calibration::self_calibration_health_thresholds::OPTIMAL){
+        response.message = "Self calibration succeeded. Calibration was already optimal. Health = " + std::to_string(healthScore);
+    }
+    else if (healthScore < self_calibration::self_calibration_health_thresholds::USABLE){
+        response.message = "Self calibration succeeded. Calibration was usable but it could be improved. Health = " + std::to_string(healthScore);
+    }
+    else {
+        response.message = "Self calibration succeeded. Calibration was unusable and it was greatly improved. Health = " + std::to_string(healthScore) ;
+    }
     ROS_INFO("Self calibration request has been addressed.");
     return true;
 }
-/** Self-calibration **/
+
+bool BaseRealSenseNode::calibration_health_callback(std_srvs::Trigger::Request& request, std_srvs::Trigger::Response& response)
+{
+    ROS_INFO("Calibration health value request has been received.");
+    toggleSensors(false);
+    float healthScore {0.0f};
+    response.success = static_cast<uint8_t>(run_self_calibration(_dev, healthScore, false));
+    toggleSensors(true);
+
+    if (healthScore < self_calibration::self_calibration_health_thresholds::OPTIMAL){
+        response.message = "Self calibration health is " + std::to_string(healthScore) + ". Calibration is optimal.";
+    }
+    else if (healthScore < self_calibration::self_calibration_health_thresholds::USABLE){
+        response.message = "Self calibration health is " + std::to_string(healthScore) + ". Calibration is usable but could be improved. Consider re-calibrating the camera.";
+    }
+    else {
+        response.message = "Self calibration health is " + std::to_string(healthScore) + ". Calibration is unusable, camera should be recalibrated.";
+    }
+    ROS_INFO("Calibration health value request has been addressed.");
+    return true;
+}
+
+bool BaseRealSenseNode::restore_factory_calibration_callback(std_srvs::Trigger::Request& request, std_srvs::Trigger::Response& response) {
+    ROS_INFO("Restore factory calibration request has been received.");
+    toggleSensors(false);
+    response.success = static_cast<uint8_t>(restore_factory_calibration(_dev));
+    response.message = "Factory calibration has been restored.";
+    toggleSensors(true);
+    ROS_INFO("Restore factory calibration has been addressed.");
+    return true;
+}
+
 
 /** Toggle color **/
 bool BaseRealSenseNode::toggleColorCb(std_srvs::SetBool::Request& request, std_srvs::SetBool::Response& response)
