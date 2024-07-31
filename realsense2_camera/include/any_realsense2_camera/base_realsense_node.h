@@ -130,10 +130,28 @@ namespace realsense2_camera
         diagnostic_updater_.update();
       }
 
+      void set_status_callback(std::function<void(const diagnostic_updater::DiagnosticStatusWrapper &stat)> callback)
+      {
+        frequency_status_.callback = callback;
+      }
+
       double expected_frequency_;
-      diagnostic_updater::FrequencyStatus frequency_status_;
+
+      struct FrequencyStatusWithCallback: public diagnostic_updater::FrequencyStatus{
+        FrequencyStatusWithCallback(const diagnostic_updater::FrequencyStatusParam &params):FrequencyStatus(params){}
+        virtual void run(diagnostic_updater::DiagnosticStatusWrapper &stat){
+                diagnostic_updater::FrequencyStatus::run(stat);
+                if (callback){
+                    callback(stat);
+                }
+
+        }
+        std::function<void(const diagnostic_updater::DiagnosticStatusWrapper &stat)> callback = nullptr;
+      } frequency_status_;
+
       diagnostic_updater::Updater diagnostic_updater_;
     };
+
     typedef std::pair<image_transport::Publisher, std::shared_ptr<FrequencyDiagnostics>> ImagePublisherWithFrequencyDiagnostics;
 
     class TemperatureDiagnostics
@@ -383,8 +401,9 @@ namespace realsense2_camera
         void fetchFrameMetadata(const rs2::frame& frame, FrameMetadata& metadata_container);
         void publishTimestampingInformation(const ros::Time& t, const rs2::frame& frame, const FrameMetadata& metadata, const TimeOffsets& time_offsets);
         //* Custom methods
-
-        rs2::device _dev;
+    public:
+        rs2::device _dev; // exposed to perform hardware resets.
+    private:
         std::map<stream_index_pair, rs2::sensor> _sensors;
         std::map<std::string, std::function<void(rs2::frame)>> _sensors_callback;
         std::vector<std::shared_ptr<ddynamic_reconfigure::DDynamicReconfigure>> _ddynrec;
@@ -415,7 +434,9 @@ namespace realsense2_camera
         std::vector<geometry_msgs::TransformStamped> _static_tf_msgs;
         std::shared_ptr<std::thread> _tf_t;
 
-        std::map<stream_index_pair, ImagePublisherWithFrequencyDiagnostics> _image_publishers;
+    public:
+        std::map<stream_index_pair, ImagePublisherWithFrequencyDiagnostics> _image_publishers; // exposed to access frequency diagnostics
+    private:
         std::map<stream_index_pair, ros::Publisher> _imu_publishers;
         std::shared_ptr<SyncedImuPublisher> _synced_imu_publisher;
         std::map<rs2_stream, int> _image_format;
