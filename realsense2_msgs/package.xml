@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <package format="3">
   <name>any_realsense2_msgs</name>
-  <version>2.2.33</version>
+  <version>2.2.34</version>
   <description>Messages for the RealSense Camera package</description>
   <author email="sergey.dorodnicov@intel.com">Sergey Dorodnicov</author>
   <author email="doron.hirshberg@intel.com">Doron Hirshberg</author>
