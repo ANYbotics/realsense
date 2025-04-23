@@ -8,6 +8,21 @@
 
 namespace realsense2_camera {
 
+/**
+ * @brief Enumeration defining the types of calibration that can be performed
+ *
+ * The RealSense camera supports two types of self-calibration:
+ * - INTRINSIC: Calibrates the optical properties of individual camera sensors
+ * - EXTRINSIC: Calibrates the roll and pitch relationship between the two cameras
+ *              within a single RealSense stereocamera
+ *
+ * The numeric values correspond directly to the values expected by
+ * the RealSense SDK when performing calibration operations:
+ * - 0: Intrinsic calibration (default)
+ * - 1: Extrinsic calibration
+ */
+enum class CalibrationType { INTRINSIC = 0, EXTRINSIC = 1 };
+
 namespace self_calibration {
 // Hardcoded types to describe the calibration table. Copied them from any_librealsense2
 /* Begin - Duplicated code from `anybotics/drivers/depth_sensors/librealsense/src/types.h` */
@@ -91,6 +106,11 @@ struct coefficients_table {
 /* End - Duplicated code from `anybotics/drivers/depth_sensors/librealsense/src/common/ds5-private.h` */
 
 struct self_calibration_result {
+  // Health score represents the root-mean-square (RMS) error in millimeters
+  // of the measured depths versus a best-fit plane over the central 256×144 ROI.
+  // Lower absolute values indicate better calibration quality.
+  // The score can be negative in some cases, which is why absolute values
+  // should be used when comparing against thresholds.
   rs2::calibration_table new_calibration_table;
   float health_score;
   bool success;
@@ -111,7 +131,7 @@ bool validate_self_calibration(const self_calibration_result& result);
 
 void restore_factory_calibration(rs2::auto_calibrated_device& dev);
 
-self_calibration_result self_calibrate(rs2::auto_calibrated_device& dev);
+self_calibration_result self_calibrate(rs2::auto_calibrated_device& dev, CalibrationType scan_type = CalibrationType::EXTRINSIC);
 
 void write_calibration_to_file(rs2::calibration_table tableRaw, rs2::device& dev, std::string fnPrefix = "");
 
@@ -119,6 +139,11 @@ void write_calibration_to_device(const rs2::calibration_table& table, rs2::auto_
 
 }  // namespace self_calibration
 
-bool run_self_calibration(rs2::device& dev, float& healthScore, bool applyCalibration);
+// Constants for better readability in calibration functions
+constexpr bool CHECK_CALIBRATION_ONLY = false;
+constexpr bool APPLY_CALIBRATION = true;
+
+bool run_self_calibration(rs2::device& dev, float& healthScore, bool applyCalibration,
+                          CalibrationType scan_type = CalibrationType::EXTRINSIC);
 bool restore_factory_calibration(rs2::device& dev);
 }  // namespace realsense2_camera

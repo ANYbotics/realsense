@@ -22,6 +22,9 @@ self_calibration_result self_calibration_step(const std::string& json_config, rs
   // Run actual self-calibration.
   try {
     ROS_INFO("On-chip calibration step starts. Please keep sensor at a fixed position.");
+    // The health_score represents the root-mean-square (RMS) error in millimeters
+    // of the measured depths versus a best-fit plane over the central 256×144 ROI.
+    // Lower absolute values indicate better calibration quality.
     result.new_calibration_table = dev.run_on_chip_calibration(json_config, &result.health_score);
     ROS_INFO_STREAM("On-chip calibration step finished. Health = " << result.health_score);
   } catch (const rs2::error& e) {
@@ -33,6 +36,12 @@ self_calibration_result self_calibration_step(const std::string& json_config, rs
 }
 
 bool validate_self_calibration(const self_calibration_result& result) {
+  // Health score is the RMS error (in mm) between measured depths and a best-fit plane.
+  // Health scores can be negative in some cases, which is why we use absolute values.
+  // Lower absolute values indicate better calibration quality:
+  // - Below OPTIMAL threshold: Excellent calibration
+  // - Below USABLE threshold: Acceptable but not ideal calibration
+  // - Above USABLE threshold: Poor calibration, needs attention
   const auto abs_score{std::abs(result.health_score)};
   if (abs_score < self_calibration_health_thresholds::OPTIMAL) {
     ROS_INFO("Optimal calibration results achieved. Device is already well calibrated.");
@@ -49,13 +58,40 @@ bool validate_self_calibration(const self_calibration_result& result) {
   }
 }
 
-self_calibration_result self_calibrate(rs2::auto_calibrated_device& dev) {
+/**
+ * @brief Performs self-calibration on the RealSense device
+ *
+ * This function executes either intrinsic or extrinsic calibration depending on the scan_type.
+ * It builds a JSON configuration with calibration parameters and runs multiple calibration
+ * attempts until either successful or maximum attempts are reached.
+ *
+ * The calibration JSON includes:
+ * - speed: Controls calibration speed (fixed at 3)
+ * - average step count: Number of averaging steps (fixed at 20)
+ * - scan parameter: Numeric value representing the calibration type
+ * - scan type: String representation of the calibration type ("intrinsic" or "extrinsic")
+ * - step count: Number of calibration steps (fixed at 20)
+ * - apply preset: Controls whether to apply a preset (fixed at 0)
+ * - accuracy: Controls calibration accuracy (fixed at 1)
+ *
+ * @param dev The RealSense device to calibrate
+ * @param scan_type The type of calibration to perform (INTRINSIC or EXTRINSIC)
+ * @return self_calibration_result Structure containing calibration results
+ */
+self_calibration_result self_calibrate(rs2::auto_calibrated_device& dev, realsense2_camera::CalibrationType scan_type) {
   self_calibration_result calib_results;
 
   // Self calibration parameters;
   std::stringstream ss;
-  ss << "{\n \"speed\":" << 3 << ",\n \"average step count\":" << 20 << ",\n \"scan parameter\":" << 1 << ",\n \"step count\":" << 20
-     << ",\n \"apply preset\":" << 0 << ",\n \"accuracy\":" << 1 << "}";
+  // Set scan parameter based on calibration type
+  int scan_parameter = static_cast<int>(scan_type);
+  std::string scan_type_str = (scan_parameter == 0) ? "intrinsic" : "extrinsic";
+
+  // Log the scan type for debugging
+  ROS_INFO_STREAM("Starting " << scan_type_str << " calibration (scan parameter=" << scan_parameter << ")");
+
+  ss << "{\n \"speed\":" << 3 << ",\n \"average step count\":" << 20 << ",\n \"scan parameter\":" << scan_parameter
+     << ",\n \"step count\":" << 20 << ",\n \"apply preset\":" << 0 << ",\n \"accuracy\":" << 1 << "}";
 
   const std::string json{ss.str()};
 
@@ -182,7 +218,7 @@ void write_calibration_to_file(rs2::calibration_table tableRaw, rs2::device& dev
 }
 }  // namespace self_calibration
 
-bool run_self_calibration(rs2::device& dev, float& healthScore, bool applyCalibration) {
+bool run_self_calibration(rs2::device& dev, float& healthScore, bool applyCalibration, realsense2_camera::CalibrationType scan_type) {
   // Create a Pipeline - this serves as a top-level API for streaming and processing frames
   rs2::pipeline pipe;
 
@@ -203,9 +239,16 @@ bool run_self_calibration(rs2::device& dev, float& healthScore, bool applyCalibr
   const rs2::calibration_table original_calibration_table{self_calibration::get_current_calibration_table(calib_dev)};
 
   // Self calibration.
-  const self_calibration::self_calibration_result calib_results{self_calibration::self_calibrate(calib_dev)};
+  const self_calibration::self_calibration_result calib_results{self_calibration::self_calibrate(calib_dev, scan_type)};
 
   // Log the calibration health score.
+  // The health score represents the root-mean-square (RMS) error in millimeters
+  // of the measured depths versus a best-fit plane over the central 256×144 ROI.
+  // Lower absolute values indicate better calibration quality:
+  // - Values below 0.25: Optimal calibration
+  // - Values between 0.25 and 0.75: Usable calibration
+  // - Values above 0.75: Poor calibration requiring attention
+  // Note: Health scores can sometimes be negative, use absolute values for comparison.
   healthScore = calib_results.health_score;
   ROS_INFO("Self calibration health score: %f", healthScore);
 
