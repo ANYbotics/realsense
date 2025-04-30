@@ -355,6 +355,7 @@ class BaseRealSenseNode : public InterfaceRealSenseNode {
   bool restore_factory_calibration_callback(std_srvs::Trigger::Request& request, std_srvs::Trigger::Response& response);
   bool intrinsic_calibration_callback(std_srvs::Trigger::Request& request, std_srvs::Trigger::Response& response);
   bool extrinsic_calibration_callback(std_srvs::Trigger::Request& request, std_srvs::Trigger::Response& response);
+  bool get_current_calibration_callback(std_srvs::Trigger::Request& request, std_srvs::Trigger::Response& response);
   bool toggleColor(bool enabled);
   bool toggleColorCb(std_srvs::SetBool::Request& request, std_srvs::SetBool::Response& response);
   bool toggleEmitter(bool enable);
@@ -432,6 +433,7 @@ class BaseRealSenseNode : public InterfaceRealSenseNode {
   ros::ServiceServer _factory_calibration_server;
   ros::ServiceServer _intrinsic_calibration_server;
   ros::ServiceServer _extrinsic_calibration_server;
+  ros::ServiceServer _get_current_calibration_server;
   ros::ServiceServer _loadJsonFileService;
   bool _disable_color_startup;
   //* Custom attributes

@@ -148,7 +148,7 @@ std::string getCurrentDateAsString() {
   return oss.str();
 }
 
-void write_calibration_to_file(rs2::calibration_table tableRaw, rs2::device& dev, std::string fnPrefix) {
+std::string write_calibration_to_file(rs2::calibration_table tableRaw, rs2::device& dev, std::string fnPrefix) {
   try {
     // Compose the filename.
     auto stamp{getCurrentDateAsString()};
@@ -212,8 +212,13 @@ void write_calibration_to_file(rs2::calibration_table tableRaw, rs2::device& dev
     } else {
       ROS_ERROR_STREAM("Unable to open the file " << filename);
     }
+
+    // Return the absolute path of the saved file
+    boost::filesystem::path absolute_path = boost::filesystem::absolute(filename);
+    return absolute_path.string();
   } catch (const std::exception& ex) {
     ROS_ERROR_STREAM(ex.what());
+    return "";
   }
 }
 }  // namespace self_calibration
@@ -261,8 +266,8 @@ bool run_self_calibration(rs2::device& dev, float& healthScore, bool applyCalibr
 
   if (calib_results.success) {
     // Save to file the original and the new calibrations.
-    self_calibration::write_calibration_to_file(original_calibration_table, calib_dev, "original_");
-    self_calibration::write_calibration_to_file(calib_results.new_calibration_table, calib_dev);
+    std::string original_calibration_path = self_calibration::write_calibration_to_file(original_calibration_table, calib_dev, "original_");
+    std::string new_calibration_path = self_calibration::write_calibration_to_file(calib_results.new_calibration_table, calib_dev);
     // Apply the new calibration values.
     self_calibration::write_calibration_to_device(calib_results.new_calibration_table, calib_dev);
     ROS_INFO("Calibration table has been written to the device ROM.");

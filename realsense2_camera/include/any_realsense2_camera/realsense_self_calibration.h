@@ -133,7 +133,7 @@ void restore_factory_calibration(rs2::auto_calibrated_device& dev);
 
 self_calibration_result self_calibrate(rs2::auto_calibrated_device& dev, CalibrationType scan_type = CalibrationType::EXTRINSIC);
 
-void write_calibration_to_file(rs2::calibration_table tableRaw, rs2::device& dev, std::string fnPrefix = "");
+std::string write_calibration_to_file(rs2::calibration_table tableRaw, rs2::device& dev, std::string fnPrefix = "");
 
 void write_calibration_to_device(const rs2::calibration_table& table, rs2::auto_calibrated_device& dev);
 

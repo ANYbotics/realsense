@@ -1356,6 +1356,8 @@ void BaseRealSenseNode::setupServices() {
       _node_handle.advertiseService("get_calibration_extrinsic_health", &BaseRealSenseNode::calibration_extrinsic_health_callback, this);
   _factory_calibration_server =
       _node_handle.advertiseService("restore_factory_calibration", &BaseRealSenseNode::restore_factory_calibration_callback, this);
+  _get_current_calibration_server =
+      _node_handle.advertiseService("get_current_calibration", &BaseRealSenseNode::get_current_calibration_callback, this);
   _toggleColorService = _node_handle.advertiseService("toggleColor", &BaseRealSenseNode::toggleColorCb, this);
   _toggleEmitterService = _node_handle.advertiseService("toggleEmitter", &BaseRealSenseNode::toggleEmitterCb, this);
   _loadJsonFileService = _node_handle.advertiseService("loadJsonFile", &BaseRealSenseNode::loadJsonFileServiceCb, this);
@@ -1622,6 +1624,73 @@ bool BaseRealSenseNode::restore_factory_calibration_callback(std_srvs::Trigger::
   response.message = "Factory calibration has been restored.";
   toggleSensors(true);
   ROS_INFO("Restore factory calibration has been addressed.");
+  return true;
+}
+
+/**
+ * @brief Service callback to retrieve and save the current camera calibration
+ *
+ * This function retrieves the current calibration table from the RealSense device
+ * and saves it to a file in the rs_calibrations/ directory with a timestamp.
+ * The sensors are temporarily disabled during the process.
+ *
+ * @param request The empty trigger request
+ * @param response Response containing success status and result message
+ * @return true Always returns true to indicate the service call was handled
+ */
+bool BaseRealSenseNode::get_current_calibration_callback(std_srvs::Trigger::Request& request, std_srvs::Trigger::Response& response) {
+  ROS_INFO("Get current calibration request has been received.");
+  toggleSensors(false);
+
+  try {
+    // Create a Pipeline - this serves as a top-level API for streaming and processing frames
+    rs2::pipeline pipe;
+    std::string serial{_dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER)};
+
+    // Configure device and start streaming.
+    rs2::config cfg;
+    // Note, this is required, otherwise the system picks the first available realsense.
+    cfg.enable_device(serial);
+    cfg.enable_stream(RS2_STREAM_INFRARED, 256, 144, RS2_FORMAT_Y8, 90);
+    cfg.enable_stream(RS2_STREAM_DEPTH, 256, 144, RS2_FORMAT_Z16, 90);
+    rs2::device device{pipe.start(cfg).get_device()};
+
+    // Get auto calibration handler.
+    rs2::auto_calibrated_device calib_dev{device.as<rs2::auto_calibrated_device>()};
+
+    // Get current calibration table.
+    ROS_DEBUG("Fetching current calibration table from device...");
+    const rs2::calibration_table calibration_table{self_calibration::get_current_calibration_table(calib_dev)};
+
+    // Save to file with a timestamp and get the resulting file path
+    std::string saved_file_path = self_calibration::write_calibration_to_file(calibration_table, calib_dev, "");
+
+    // Check if the file path is empty (indicating a failure)
+    if (saved_file_path.empty()) {
+      response.success = false;
+      response.message = "Failed to save calibration to file. Check logs for details.";
+    } else {
+      response.success = true;
+      response.message = "Current calibration saved to file: " + saved_file_path;
+    }
+  } catch (const rs2::error& e) {
+    response.success = false;
+    response.message = std::string("RealSense error: ") + e.what() +
+                       "\n\n"
+                       "USAGE EXAMPLE:\n"
+                       "  rosservice call /camera/get_current_calibration";
+    ROS_ERROR_STREAM("RealSense error: " << e.what());
+  } catch (const std::exception& e) {
+    response.success = false;
+    response.message = std::string("Exception: ") + e.what() +
+                       "\n\n"
+                       "USAGE EXAMPLE:\n"
+                       "  rosservice call /camera/get_current_calibration";
+    ROS_ERROR_STREAM("Exception: " << e.what());
+  }
+
+  toggleSensors(true);
+  ROS_INFO("Get current calibration request has been addressed.");
   return true;
 }
 
