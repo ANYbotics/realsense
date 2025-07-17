@@ -11,6 +11,7 @@
 #include <ros/package.h>
 #include <ros/ros.h>
 #include <std_srvs/SetBool.h>
+#include <acl_fault_propagation/StateCollector.hpp>
 #include <csignal>
 #include <eigen3/Eigen/Geometry>
 #include <fstream>
@@ -92,5 +93,8 @@ class RealSenseNodeFactory : public nodelet::Nodelet {
   ros::WallTimer _interface_callback_timer;
   ros::Publisher _interface_status_pub;
   std::string _camera_name;
+
+  //! Fault propagation
+  std::shared_ptr<acl::fault_propagation::StateCollector> faultStateCollector_;
 };
 }  // namespace realsense2_camera

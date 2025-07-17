@@ -1,11 +1,13 @@
 #pragma once
 
 #include <any_realsense2_camera/base_realsense_node.h>
+#include <memory>
 
 namespace realsense2_camera {
 class T265RealsenseNode : public BaseRealSenseNode {
  public:
-  T265RealsenseNode(ros::NodeHandle& nodeHandle, ros::NodeHandle& privateNodeHandle, rs2::device dev, const std::string& serial_no);
+  T265RealsenseNode(ros::NodeHandle& nodeHandle, ros::NodeHandle& privateNodeHandle, rs2::device dev, const std::string& serial_no,
+                    std::shared_ptr<StateCollector> stateCollector);
   virtual void toggleSensors(bool enabled) override;
   virtual void publishTopics() override;
 

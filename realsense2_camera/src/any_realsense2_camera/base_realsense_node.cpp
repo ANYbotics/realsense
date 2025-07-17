@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
 #include <cctype>
+#include <depth_camera_faults/DepthCameraFault.hpp>
 #include <mutex>
 #include "assert.h"
 
@@ -77,7 +78,7 @@ std::string BaseRealSenseNode::getNamespaceStr() {
 }
 
 BaseRealSenseNode::BaseRealSenseNode(ros::NodeHandle& nodeHandle, ros::NodeHandle& privateNodeHandle, rs2::device dev,
-                                     const std::string& serial_no)
+                                     const std::string& serial_no, std::shared_ptr<StateCollector> stateCollector)
     : _is_running(true),
       _base_frame_id(""),
       _node_handle(nodeHandle),
@@ -86,7 +87,8 @@ BaseRealSenseNode::BaseRealSenseNode(ros::NodeHandle& nodeHandle, ros::NodeHandl
       _json_file_path(""),
       _serial_no(serial_no),
       _is_initialized_time_base(false),
-      _namespace(getNamespaceStr()) {
+      _namespace(getNamespaceStr()),
+      _fault_state_collector(stateCollector) {
   // Types for depth stream
   _format[RS2_STREAM_DEPTH] = RS2_FORMAT_Z16;
   _image_format[RS2_STREAM_DEPTH] = CV_16UC1;                              // CVBridge type
@@ -133,6 +135,8 @@ BaseRealSenseNode::BaseRealSenseNode(ros::NodeHandle& nodeHandle, ros::NodeHandl
   _stream_name[RS2_STREAM_POSE] = "pose";
 
   _monitor_options = {RS2_OPTION_ASIC_TEMPERATURE, RS2_OPTION_PROJECTOR_TEMPERATURE};
+
+  _fault_state_collector->createState(depth_camera_faults::DepthCameraFault::HIGH_TEMPERATURE, acl::fault_propagation::Visibility::INFO);
 }
 
 BaseRealSenseNode::~BaseRealSenseNode() {
@@ -659,6 +663,9 @@ void BaseRealSenseNode::getParameters() {
   _pnh.param("angular_velocity_cov", _angular_velocity_cov, static_cast<double>(0.01));
   _pnh.param("hold_back_imu_for_frames", _hold_back_imu_for_frames, HOLD_BACK_IMU_FOR_FRAMES);
   _pnh.param("publish_odom_tf", _publish_odom_tf, PUBLISH_ODOM_TF);
+
+  _pnh.param("temperature_warning_threshold", _temperature_warning_threshold, DEFAULT_TEMPERATURE_WARNING_THRESHOLD_IN_CELSIUS);
+  _pnh.param("temperature_error_threshold", _temperature_error_threshold, DEFAULT_TEMPERATURE_ERROR_THRESHOLD_IN_CELSIUS);
 }
 
 void BaseRealSenseNode::setupDevice() {
@@ -2765,6 +2772,7 @@ void BaseRealSenseNode::startMonitoring() {
       if (_is_running) {
         // Start of custom ANYbotics code
         publish_ir_emitter();
+        temperature_fault_check();
         // End of custom ANYbotics code
 
         publish_temperature();
@@ -2773,6 +2781,37 @@ void BaseRealSenseNode::startMonitoring() {
     }
   };
   _monitoring_t = std::make_shared<std::thread>(func);
+}
+
+void BaseRealSenseNode::temperature_fault_check() {
+  rs2::options sensor(_sensors[_base_stream]);
+  for (OptionTemperatureDiag option_diag : _temperature_nodes) {
+    rs2_option option(option_diag.first);
+    if (sensor.supports(option)) {
+      try {
+        auto option_value = sensor.get_option(option);
+        if (option_value > _temperature_error_threshold) {
+          _fault_state_collector->update(depth_camera_faults::DepthCameraFault::HIGH_TEMPERATURE, acl::fault_propagation::Severity::ERROR,
+                                         "Depth Camera Temperature is too high");
+          // Return already: one temperature node check is enough to set a fault.
+          return;
+
+        } else if (option_value > _temperature_warning_threshold) {
+          _fault_state_collector->update(depth_camera_faults::DepthCameraFault::HIGH_TEMPERATURE, acl::fault_propagation::Severity::WARNING,
+                                         "Depth Camera Temperature is in warning range");
+          // Return already: one temperature node check is enough to set a fault.
+          return;
+        } else {
+          _fault_state_collector->update(depth_camera_faults::DepthCameraFault::HIGH_TEMPERATURE, acl::fault_propagation::Severity::OK,
+                                         "Depth Camera Temperature is OK");
+        }
+      } catch (const std::exception& e) {
+        ROS_DEBUG_STREAM("Failed checking for temperature." << std::endl << e.what());
+      } catch (...) {
+        ROS_ERROR("Caught undefined exception.");
+      }
+    }
+  }
 }
 
 void BaseRealSenseNode::publish_temperature() {

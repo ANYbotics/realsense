@@ -4,8 +4,10 @@ using namespace any_realsense2_msgs;
 using namespace realsense2_camera;
 
 T265RealsenseNode::T265RealsenseNode(ros::NodeHandle& nodeHandle, ros::NodeHandle& privateNodeHandle, rs2::device dev,
-                                     const std::string& serial_no)
-    : BaseRealSenseNode(nodeHandle, privateNodeHandle, dev, serial_no), _wo_snr(dev.first<rs2::wheel_odometer>()), _use_odom_in(false) {
+                                     const std::string& serial_no, std::shared_ptr<StateCollector> stateCollector)
+    : BaseRealSenseNode(nodeHandle, privateNodeHandle, dev, serial_no, stateCollector),
+      _wo_snr(dev.first<rs2::wheel_odometer>()),
+      _use_odom_in(false) {
   _monitor_options = {RS2_OPTION_ASIC_TEMPERATURE, RS2_OPTION_MOTION_MODULE_TEMPERATURE};
   initializeOdometryInput();
   handleWarning();

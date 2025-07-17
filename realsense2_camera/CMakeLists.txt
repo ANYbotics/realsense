@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 3.5.1)
 project(any_realsense2_camera)
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(catkin REQUIRED
     COMPONENTS
+        acl_fault_propagation
+        depth_camera_faults
         nav_msgs
         roscpp
         sensor_msgs
@@ -72,6 +74,7 @@ catkin_package(
     LIBRARIES
         ${PROJECT_NAME}
     CATKIN_DEPENDS
+        depth_camera_faults
         roscpp
         sensor_msgs
         std_msgs
@@ -147,6 +150,8 @@ install(FILES nodelet_plugins.xml
 if(CATKIN_ENABLE_TESTING)
     find_package(catkin REQUIRED
         COMPONENTS
+            acl_fault_propagation
+            depth_camera_faults
             nav_msgs
             roscpp
             sensor_msgs

@@ -15,6 +15,7 @@
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <tf/transform_broadcaster.h>
 #include <tf2_ros/static_transform_broadcaster.h>
+#include <acl_fault_propagation/StateCollector.hpp>
 
 /** Custom messages and services **/
 #include <any_realsense2_msgs/FrameMetadataMsg.h>
@@ -27,6 +28,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <queue>
 #include <thread>
@@ -215,7 +217,10 @@ class SyncedImuPublisher {
 
 class BaseRealSenseNode : public InterfaceRealSenseNode {
  public:
-  BaseRealSenseNode(ros::NodeHandle& nodeHandle, ros::NodeHandle& privateNodeHandle, rs2::device dev, const std::string& serial_no);
+  using StateCollector = acl::fault_propagation::StateCollector;
+
+  BaseRealSenseNode(ros::NodeHandle& nodeHandle, ros::NodeHandle& privateNodeHandle, rs2::device dev, const std::string& serial_no,
+                    std::shared_ptr<StateCollector> stateCollector);
 
   virtual void toggleSensors(bool enabled) override;
   virtual void publishTopics() override;
@@ -346,6 +351,7 @@ class BaseRealSenseNode : public InterfaceRealSenseNode {
   void set_sensor_auto_exposure_roi(rs2::sensor sensor);
   rs2_stream rs2_string_to_stream(std::string str);
   void startMonitoring();
+  void temperature_fault_check();
   void publish_temperature();
   void publish_frequency_update();
   //* Custom methods
@@ -419,6 +425,8 @@ class BaseRealSenseNode : public InterfaceRealSenseNode {
   bool _sync_frames;
   bool _pointcloud;
   bool _publish_odom_tf;
+  double _temperature_warning_threshold;
+  double _temperature_error_threshold;
 
   imu_sync_method _imu_sync_method;
 
@@ -470,6 +478,9 @@ class BaseRealSenseNode : public InterfaceRealSenseNode {
 
   stream_index_pair _base_stream;
   const std::string _namespace;
+
+  //! Fault propagation
+  std::shared_ptr<StateCollector> _fault_state_collector;
 
   sensor_msgs::PointCloud2 _msg_pointcloud;
   std::vector<unsigned int> _valid_pc_indices;

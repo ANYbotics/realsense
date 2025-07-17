@@ -15,11 +15,13 @@
   <author email="doron.hirshberg@intel.com">Doron Hirshberg</author>
   <buildtool_depend>catkin</buildtool_depend>
 <!--   <build_depend>cmake_clang_tools</build_depend> -->
+  <depend>acl_fault_propagation</depend>
   <depend>any_librealsense2</depend>
   <depend>any_realsense2_msgs</depend>
   <depend>boost</depend>
   <depend>cv_bridge</depend>
   <depend>ddynamic_reconfigure</depend>
+  <depend>depth_camera_faults</depend>
   <depend>diagnostic_updater</depend>
   <depend>eigen</depend>
   <depend>genmsg</depend>

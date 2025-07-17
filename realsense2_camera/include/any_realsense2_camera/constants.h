@@ -70,6 +70,8 @@ const bool DEFAULT_DISABLE_COLOR_STARTUP = false;
 //* Custom constants.
 // Start of custom ANYbotics code
 const std::string DEFAULT_FRAME_ID_PREFIX = "camera_";
+const double DEFAULT_TEMPERATURE_WARNING_THRESHOLD_IN_CELSIUS = 45;
+const double DEFAULT_TEMPERATURE_ERROR_THRESHOLD_IN_CELSIUS = 55;
 // End of custom ANYbotics code
 const std::string DEFAULT_ODOM_FRAME_ID = "odom_frame";
 const std::string DEFAULT_DEPTH_FRAME_ID = "camera_depth_frame";

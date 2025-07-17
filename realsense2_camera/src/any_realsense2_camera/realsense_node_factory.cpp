@@ -336,10 +336,12 @@ void RealSenseNodeFactory::StartDevice() {
     case RS_USB2_PID:
     case RS_L515_PID_PRE_PRQ:
     case RS_L515_PID:
-      _realSenseNode = std::unique_ptr<BaseRealSenseNode>(new BaseRealSenseNode(nh, privateNh, _device, _serial_no));
+      // Comment the creation of the _realSenseNode as it breaks after the introduction of the state fault collector
+      // _realSenseNode = std::unique_ptr<BaseRealSenseNode>(new BaseRealSenseNode(nh, privateNh, _device, _serial_no));
       break;
     case RS_T265_PID:
-      _realSenseNode = std::unique_ptr<T265RealsenseNode>(new T265RealsenseNode(nh, privateNh, _device, _serial_no));
+      // Comment the creation of the _realSenseNode as it breaks after the introduction of the state fault collector
+      // _realSenseNode = std::unique_ptr<T265RealsenseNode>(new T265RealsenseNode(nh, privateNh, _device, _serial_no));
       break;
     default:
       _interface_state = State::ERROR;
