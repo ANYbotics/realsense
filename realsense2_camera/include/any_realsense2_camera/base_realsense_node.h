@@ -4,6 +4,7 @@
 #pragma once
 
 #include "any_realsense2_camera/realsense_node_factory.h"
+#include "any_realsense2_camera/realsense_self_calibration.h"
 
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
 #include <diagnostic_updater/diagnostic_updater.h>
@@ -370,10 +371,28 @@ class BaseRealSenseNode : public InterfaceRealSenseNode {
   void fetchFrameMetadata(const rs2::frame& frame, FrameMetadata& metadata_container);
   void publishTimestampingInformation(const ros::Time& t, const rs2::frame& frame, const FrameMetadata& metadata,
                                       const TimeOffsets& time_offsets);
+
   //* Custom methods
  public:
   rs2::device _dev;  // exposed to perform hardware resets.
+
+  // LCSM calibration callbacks
+  using CalibrationStateCallback = std::function<bool()>;
+  void setEnterCalibrationModeCallback(CalibrationStateCallback callback) { calibrationEnterCallback_ = callback; }
+  void setExitCalibrationModeCallback(CalibrationStateCallback callback) { calibrationExitCallback_ = callback; }
+
  private:
+  // Helper functions for calibration operations
+  std::string formatHealthScoreMessage(float healthScore, const std::string& operation_name, bool success, bool is_health_check = false);
+
+  /**
+   * @brief Unified calibration operation handler
+   * @param cal_type The type of calibration to perform
+   * @param is_health_check Whether this is a health check (true) or actual calibration (false)
+   * @return Service response with success status and message
+   */
+  std_srvs::Trigger::Response performCalibrationOperation(CalibrationType cal_type, bool is_health_check = false);
+
   std::map<stream_index_pair, rs2::sensor> _sensors;
   std::map<std::string, std::function<void(rs2::frame)>> _sensors_callback;
   std::vector<std::shared_ptr<ddynamic_reconfigure::DDynamicReconfigure>> _ddynrec;
@@ -443,6 +462,7 @@ class BaseRealSenseNode : public InterfaceRealSenseNode {
   ros::ServiceServer _extrinsic_calibration_server;
   ros::ServiceServer _get_current_calibration_server;
   ros::ServiceServer _loadJsonFileService;
+
   bool _disable_color_startup;
   //* Custom attributes
 
@@ -481,6 +501,10 @@ class BaseRealSenseNode : public InterfaceRealSenseNode {
 
   //! Fault propagation
   std::shared_ptr<StateCollector> _fault_state_collector;
+
+  // LCSM calibration callbacks
+  CalibrationStateCallback calibrationEnterCallback_;
+  CalibrationStateCallback calibrationExitCallback_;
 
   sensor_msgs::PointCloud2 _msg_pointcloud;
   std::vector<unsigned int> _valid_pc_indices;

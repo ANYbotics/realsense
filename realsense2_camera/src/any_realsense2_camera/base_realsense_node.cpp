@@ -1,5 +1,6 @@
 #include "any_realsense2_camera/base_realsense_node.h"
 
+#include <std_srvs/SetBool.h>
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
 #include <cctype>
@@ -1374,238 +1375,152 @@ void BaseRealSenseNode::setupServices() {
 /** Self-calibration **/
 
 /**
+ * @brief Helper function to format health score message
+ * @param healthScore The raw health score
+ * @param operation_name Name of the operation (e.g., "Intrinsic calibration", "Extrinsic calibration")
+ * @param success Whether the operation was successful
+ * @param is_health_check Whether this is a health check (affects message format)
+ * @return Formatted message string
+ */
+std::string BaseRealSenseNode::formatHealthScoreMessage(float healthScore, const std::string& operation_name, bool success,
+                                                        bool is_health_check) {
+  float absHealth = std::abs(healthScore);
+
+  if (!success) {
+    if (is_health_check) {
+      return operation_name + " failed. Hardware error or calibration timeout occurred.";
+    } else {
+      return operation_name + " failed. Health score: " + std::to_string(absHealth) + ".";
+    }
+  }
+
+  std::string thresholdMsg = "";
+  if (absHealth < self_calibration::self_calibration_health_thresholds::OPTIMAL) {
+    thresholdMsg = "Calibration is optimal.";
+  } else if (absHealth < self_calibration::self_calibration_health_thresholds::USABLE) {
+    thresholdMsg = "Calibration is usable but could be improved. Consider re-calibrating the camera.";
+  } else {
+    thresholdMsg = "Calibration is unusable, camera should be recalibrated.";
+  }
+
+  if (is_health_check) {
+    return operation_name + " health is " + std::to_string(healthScore) + " (absolute value: " + std::to_string(absHealth) + "). " +
+           thresholdMsg;
+  } else {
+    return operation_name + " succeeded. Health score: " + std::to_string(absHealth) + ". " + thresholdMsg;
+  }
+}
+
+/**
+ * @brief Unified calibration operation handler
+ * @param cal_type The type of calibration to perform (INTRINSIC or EXTRINSIC)
+ * @param is_health_check Whether this is a health check (true) or actual calibration (false)
+ * @return Service response with success status and detailed message
+ */
+std_srvs::Trigger::Response BaseRealSenseNode::performCalibrationOperation(CalibrationType cal_type, bool is_health_check) {
+  std_srvs::Trigger::Response response;
+
+  // Determine operation name for logging and messages
+  std::string operation_name = (cal_type == CalibrationType::INTRINSIC) ? "Intrinsic calibration" : "Extrinsic calibration";
+
+  // Enter calibration mode (switch to Ready state)
+  if (!calibrationEnterCallback_) {
+    ROS_ERROR("Calibration enter callback not set up - node factory callback not configured");
+    response.success = false;
+    response.message = (is_health_check ? "Calibration health check failed: " : "Calibration failed: ") +
+                       std::string("Node factory callback not properly configured");
+    return response;
+  }
+
+  if (!calibrationEnterCallback_()) {
+    ROS_ERROR("Failed to enter calibration mode - LCSM state transition failed");
+    response.success = false;
+    response.message = (is_health_check ? "Calibration health check failed: " : "Calibration failed: ") +
+                       std::string("Unable to enter calibration mode (LCSM state transition failed)");
+    return response;
+  }
+
+  try {
+    // Perform the calibration or health check and get the health score
+    float healthScore{0.0f};
+
+    if (is_health_check) {
+      response.success = static_cast<uint8_t>(run_self_calibration(_dev, healthScore, CHECK_CALIBRATION_ONLY, cal_type));
+    } else {
+      response.success = static_cast<uint8_t>(run_self_calibration(_dev, healthScore, APPLY_CALIBRATION, cal_type));
+    }
+
+    response.message = formatHealthScoreMessage(healthScore, operation_name, response.success, is_health_check);
+
+    ROS_INFO("%s request has been addressed.", operation_name.c_str());
+
+    // Exit calibration mode (switch back to Active state)
+    if (calibrationExitCallback_) {
+      if (!calibrationExitCallback_()) {
+        ROS_WARN("Failed to exit calibration mode");
+      }
+    }
+  } catch (...) {
+    ROS_ERROR("Exception during %s", operation_name.c_str());
+    response.success = false;
+    response.message = operation_name + " failed due to exception";
+
+    // Exit calibration mode when something goes wrong
+    if (calibrationExitCallback_) {
+      if (!calibrationExitCallback_()) {
+        ROS_WARN("Failed to exit calibration mode after exception");
+      }
+    }
+  }
+
+  return response;
+}
+
+/**
  * @brief Callback for intrinsic calibration service
- *
- * This service performs intrinsic calibration on the camera sensors.
- * The process includes:
- * 1. Disabling node-managed sensors with toggleSensors(false)
- * 2. Measuring current calibration health score via run_self_calibration
- *    (which creates its own streaming pipeline at 256x144 resolution)
- * 3. Performing intrinsic calibration
- * 4. Measuring new health score
- * 5. Re-enabling node-managed sensors with toggleSensors(true)
- *
- * The response includes information about:
- * - Whether calibration was successful
- * - Whether the health score improved
- * - The classification of the final health score (optimal, usable, needs attention)
- * - Both raw and absolute health scores
- *
  * @param request The service request (empty for Trigger services)
- * @param response The service response, including success flag and detailed message
- * @return true if the service call was handled, regardless of calibration success
+ * @param response The service response with success status and health score information
+ * @return true if the service call was handled
  */
 bool BaseRealSenseNode::intrinsic_calibration_callback(std_srvs::Trigger::Request& request, std_srvs::Trigger::Response& response) {
   ROS_INFO("Intrinsic calibration request has been received.");
-  toggleSensors(false);
-
-  // First measure the current health score without calibrating
-  float oldHealthScore{0.0f};
-  run_self_calibration(_dev, oldHealthScore, CHECK_CALIBRATION_ONLY, CalibrationType::INTRINSIC);
-
-  // Now perform the actual calibration and get the new health score
-  float newHealthScore{0.0f};
-  response.success = run_self_calibration(_dev, newHealthScore, APPLY_CALIBRATION, CalibrationType::INTRINSIC);
-
-  // Use absolute values to properly compare health scores
-  float absOldHealth = std::abs(oldHealthScore);
-  float absNewHealth = std::abs(newHealthScore);
-
-  // Build response message based on both old and new scores
-  std::string improvementMsg = "";
-  if (absNewHealth < absOldHealth) {
-    improvementMsg = "Calibration improved health score from " + std::to_string(oldHealthScore) + " to " + std::to_string(newHealthScore) +
-                     " (absolute values: " + std::to_string(absOldHealth) + " to " + std::to_string(absNewHealth) + ").";
-  } else {
-    improvementMsg = "Calibration did not improve health score (before: " + std::to_string(absOldHealth) +
-                     ", after: " + std::to_string(absNewHealth) + ").";
-  }
-
-  toggleSensors(true);
-
-  if (!response.success) {
-    response.message = "Intrinsic calibration failed. Calibration health is " + std::to_string(absNewHealth) + ".";
-    return true;
-  }
-
-  // Add threshold-based classification using absolute value
-  std::string thresholdMsg = "";
-  if (absNewHealth < self_calibration::self_calibration_health_thresholds::OPTIMAL) {
-    thresholdMsg = "Health score is optimal.";
-  } else if (absNewHealth < self_calibration::self_calibration_health_thresholds::USABLE) {
-    thresholdMsg = "Health score is usable.";
-  } else {
-    thresholdMsg = "Health score still needs attention.";
-  }
-
-  // Combine both messages
-  response.message = "Intrinsic calibration succeeded. " + improvementMsg + " " + thresholdMsg;
-
-  ROS_INFO("Intrinsic calibration request has been addressed.");
+  response = performCalibrationOperation(CalibrationType::INTRINSIC, false);
   return true;
 }
 
 /**
  * @brief Callback for extrinsic calibration service
- *
- * This service performs extrinsic calibration between the stereocamera sensors.
- * The process includes:
- * 1. Disabling node-managed sensors with toggleSensors(false)
- * 2. Measuring current calibration health score via run_self_calibration
- *    (which creates its own streaming pipeline at 256x144 resolution)
- * 3. Performing extrinsic calibration (roll and pitch between the two cameras)
- * 4. Measuring new health score
- * 5. Re-enabling node-managed sensors with toggleSensors(true)
- *
- * The response includes information about:
- * - Whether calibration was successful
- * - Whether the health score improved
- * - The classification of the final health score (optimal, usable, needs attention)
- * - Both raw and absolute health scores
- *
  * @param request The service request (empty for Trigger services)
- * @param response The service response, including success flag and detailed message
- * @return true if the service call was handled, regardless of calibration success
+ * @param response The service response with success status and health score information
+ * @return true if the service call was handled
  */
 bool BaseRealSenseNode::extrinsic_calibration_callback(std_srvs::Trigger::Request& request, std_srvs::Trigger::Response& response) {
   ROS_INFO("Extrinsic calibration request has been received.");
-  toggleSensors(false);
-
-  // First measure the current health score without calibrating
-  float oldHealthScore{0.0f};
-  run_self_calibration(_dev, oldHealthScore, CHECK_CALIBRATION_ONLY, CalibrationType::EXTRINSIC);
-
-  // Now perform the actual calibration and get the new health score
-  float newHealthScore{0.0f};
-  response.success = run_self_calibration(_dev, newHealthScore, APPLY_CALIBRATION, CalibrationType::EXTRINSIC);
-
-  // Use absolute values to properly compare health scores
-  float absOldHealth = std::abs(oldHealthScore);
-  float absNewHealth = std::abs(newHealthScore);
-
-  // Build response message based on both old and new scores
-  std::string improvementMsg = "";
-  if (absNewHealth < absOldHealth) {
-    improvementMsg = "Calibration improved health score from " + std::to_string(oldHealthScore) + " to " + std::to_string(newHealthScore) +
-                     " (absolute values: " + std::to_string(absOldHealth) + " to " + std::to_string(absNewHealth) + ").";
-  } else {
-    improvementMsg = "Calibration did not improve health score (before: " + std::to_string(absOldHealth) +
-                     ", after: " + std::to_string(absNewHealth) + ").";
-  }
-
-  toggleSensors(true);
-
-  if (!response.success) {
-    response.message = "Extrinsic calibration failed. Calibration health is " + std::to_string(absNewHealth) + ".";
-    return true;
-  }
-
-  // Add threshold-based classification using absolute value
-  std::string thresholdMsg = "";
-  if (absNewHealth < self_calibration::self_calibration_health_thresholds::OPTIMAL) {
-    thresholdMsg = "Health score is optimal.";
-  } else if (absNewHealth < self_calibration::self_calibration_health_thresholds::USABLE) {
-    thresholdMsg = "Health score is usable.";
-  } else {
-    thresholdMsg = "Health score still needs attention.";
-  }
-
-  // Combine both messages
-  response.message = "Extrinsic calibration succeeded. " + improvementMsg + " " + thresholdMsg;
-
-  ROS_INFO("Extrinsic calibration request has been addressed.");
+  response = performCalibrationOperation(CalibrationType::EXTRINSIC, false);
   return true;
 }
 
 /**
  * @brief Callback for intrinsic health check service
- *
- * This service checks the health of the intrinsic calibration without modifying it.
- * The process includes:
- * 1. Disabling node-managed sensors with toggleSensors(false)
- * 2. Measuring current intrinsic calibration health score via run_self_calibration
- *    (which creates its own streaming pipeline at 256x144 resolution)
- * 3. Re-enabling node-managed sensors with toggleSensors(true)
- *
- * The response includes information about:
- * - The health score (both raw and absolute values)
- * - Classification of the health score (optimal, usable, unusable)
- *
- * Lower absolute health scores indicate better calibration.
- *
  * @param request The service request (empty for Trigger services)
- * @param response The service response, including the health score and its classification
- * @return true if the service call was handled successfully
+ * @param response The service response with health score and classification
+ * @return true if the service call was handled
  */
 bool BaseRealSenseNode::calibration_intrinsic_health_callback(std_srvs::Trigger::Request& request, std_srvs::Trigger::Response& response) {
   ROS_INFO("Calibration intrinsic health value request has been received.");
-  toggleSensors(false);
-  float healthScore{0.0f};
-  response.success =
-      static_cast<uint8_t>(run_self_calibration(_dev, healthScore, CHECK_CALIBRATION_ONLY, realsense2_camera::CalibrationType::INTRINSIC));
-  toggleSensors(true);
-
-  // Use absolute value for comparison
-  float absHealthScore = std::abs(healthScore);
-
-  if (absHealthScore < self_calibration::self_calibration_health_thresholds::OPTIMAL) {
-    response.message = "Intrinsic calibration health is " + std::to_string(healthScore) +
-                       " (absolute value: " + std::to_string(absHealthScore) + "). Calibration is optimal.";
-  } else if (absHealthScore < self_calibration::self_calibration_health_thresholds::USABLE) {
-    response.message = "Intrinsic calibration health is " + std::to_string(healthScore) +
-                       " (absolute value: " + std::to_string(absHealthScore) +
-                       "). Calibration is usable but could be improved. Consider re-calibrating the camera.";
-  } else {
-    response.message = "Intrinsic calibration health is " + std::to_string(healthScore) +
-                       " (absolute value: " + std::to_string(absHealthScore) + "). Calibration is unusable, camera should be recalibrated.";
-  }
-  ROS_INFO("Calibration intrinsic health value request has been addressed.");
+  response = performCalibrationOperation(CalibrationType::INTRINSIC, true);
   return true;
 }
 
 /**
  * @brief Callback for extrinsic health check service
- *
- * This service checks the health of the extrinsic calibration without modifying it.
- * The process includes:
- * 1. Disabling node-managed sensors with toggleSensors(false)
- * 2. Measuring current extrinsic calibration health score via run_self_calibration
- *    (which creates its own streaming pipeline at 256x144 resolution)
- * 3. Re-enabling node-managed sensors with toggleSensors(true)
- *
- * The response includes information about:
- * - The health score (both raw and absolute values)
- * - Classification of the health score (optimal, usable, unusable)
- *
- * Lower absolute health scores indicate better calibration.
- *
  * @param request The service request (empty for Trigger services)
- * @param response The service response, including the health score and its classification
- * @return true if the service call was handled successfully
+ * @param response The service response with health score and classification
+ * @return true if the service call was handled
  */
 bool BaseRealSenseNode::calibration_extrinsic_health_callback(std_srvs::Trigger::Request& request, std_srvs::Trigger::Response& response) {
   ROS_INFO("Calibration extrinsic health value request has been received.");
-  toggleSensors(false);
-  float healthScore{0.0f};
-  response.success =
-      static_cast<uint8_t>(run_self_calibration(_dev, healthScore, CHECK_CALIBRATION_ONLY, realsense2_camera::CalibrationType::EXTRINSIC));
-  toggleSensors(true);
-
-  // Use absolute value for comparison
-  float absHealthScore = std::abs(healthScore);
-
-  if (absHealthScore < self_calibration::self_calibration_health_thresholds::OPTIMAL) {
-    response.message = "Extrinsic calibration health is " + std::to_string(healthScore) +
-                       " (absolute value: " + std::to_string(absHealthScore) + "). Calibration is optimal.";
-  } else if (absHealthScore < self_calibration::self_calibration_health_thresholds::USABLE) {
-    response.message = "Extrinsic calibration health is " + std::to_string(healthScore) +
-                       " (absolute value: " + std::to_string(absHealthScore) +
-                       "). Calibration is usable but could be improved. Consider re-calibrating the camera.";
-  } else {
-    response.message = "Extrinsic calibration health is " + std::to_string(healthScore) +
-                       " (absolute value: " + std::to_string(absHealthScore) + "). Calibration is unusable, camera should be recalibrated.";
-  }
-  ROS_INFO("Calibration extrinsic health value request has been addressed.");
+  response = performCalibrationOperation(CalibrationType::EXTRINSIC, true);
   return true;
 }
 
