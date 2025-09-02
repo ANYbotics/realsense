@@ -1,2 +1,0 @@
-# This directory is ignored by colcon to prevent conflicts with ROS2 packages.
-# This is a ROS1 package that should not be built with colcon. 
