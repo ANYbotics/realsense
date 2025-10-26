@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
 #include <cctype>
-#include <depth_camera_faults/DepthCameraFault.hpp>
+#include <depth_camera_faults/DepthCameraDeviceFault.hpp>
 #include <mutex>
 #include "assert.h"
 
@@ -13,6 +13,7 @@
 using namespace any_realsense2_msgs;
 using namespace realsense2_camera;
 using namespace ddynamic_reconfigure;
+using depth_camera_faults::DepthCameraDeviceFault;
 using realsense2_camera::CalibrationType;
 
 // stream_index_pair sip{stream_type, stream_index};
@@ -137,7 +138,7 @@ BaseRealSenseNode::BaseRealSenseNode(ros::NodeHandle& nodeHandle, ros::NodeHandl
 
   _monitor_options = {RS2_OPTION_ASIC_TEMPERATURE, RS2_OPTION_PROJECTOR_TEMPERATURE};
 
-  _fault_state_collector->createState(depth_camera_faults::DepthCameraFault::HIGH_TEMPERATURE, acl::fault_propagation::Visibility::INFO);
+  _fault_state_collector->createState(DepthCameraDeviceFault::HIGH_TEMPERATURE_IR_EMITTER, acl::fault_propagation::Visibility::INFO);
 }
 
 BaseRealSenseNode::~BaseRealSenseNode() {
@@ -2706,18 +2707,18 @@ void BaseRealSenseNode::temperature_fault_check() {
       try {
         auto option_value = sensor.get_option(option);
         if (option_value > _temperature_error_threshold) {
-          _fault_state_collector->update(depth_camera_faults::DepthCameraFault::HIGH_TEMPERATURE, acl::fault_propagation::Severity::ERROR,
+          _fault_state_collector->update(DepthCameraDeviceFault::HIGH_TEMPERATURE_IR_EMITTER, acl::fault_propagation::Severity::ERROR,
                                          "Depth Camera Temperature is too high");
           // Return already: one temperature node check is enough to set a fault.
           return;
 
         } else if (option_value > _temperature_warning_threshold) {
-          _fault_state_collector->update(depth_camera_faults::DepthCameraFault::HIGH_TEMPERATURE, acl::fault_propagation::Severity::WARNING,
+          _fault_state_collector->update(DepthCameraDeviceFault::HIGH_TEMPERATURE_IR_EMITTER, acl::fault_propagation::Severity::WARNING,
                                          "Depth Camera Temperature is in warning range");
           // Return already: one temperature node check is enough to set a fault.
           return;
         } else {
-          _fault_state_collector->update(depth_camera_faults::DepthCameraFault::HIGH_TEMPERATURE, acl::fault_propagation::Severity::OK,
+          _fault_state_collector->update(DepthCameraDeviceFault::HIGH_TEMPERATURE_IR_EMITTER, acl::fault_propagation::Severity::OK,
                                          "Depth Camera Temperature is OK");
         }
       } catch (const std::exception& e) {
