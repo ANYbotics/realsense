@@ -138,7 +138,10 @@ BaseRealSenseNode::BaseRealSenseNode(ros::NodeHandle& nodeHandle, ros::NodeHandl
 
   _monitor_options = {RS2_OPTION_ASIC_TEMPERATURE, RS2_OPTION_PROJECTOR_TEMPERATURE};
 
-  _fault_state_collector->createState(DepthCameraDeviceFault::HIGH_TEMPERATURE_IR_EMITTER, acl::fault_propagation::Visibility::INFO);
+  _fault_state_collector->createState(DepthCameraDeviceFault::HIGH_TEMPERATURE_ASIC, acl::fault_propagation::Visibility::INFO,
+                                      acl::fault_propagation::SensorValueSeverity::OK);
+  _fault_state_collector->createState(DepthCameraDeviceFault::HIGH_TEMPERATURE_IR_EMITTER, acl::fault_propagation::Visibility::INFO,
+                                      acl::fault_propagation::SensorValueSeverity::OK);
 }
 
 BaseRealSenseNode::~BaseRealSenseNode() {
@@ -666,8 +669,15 @@ void BaseRealSenseNode::getParameters() {
   _pnh.param("hold_back_imu_for_frames", _hold_back_imu_for_frames, HOLD_BACK_IMU_FOR_FRAMES);
   _pnh.param("publish_odom_tf", _publish_odom_tf, PUBLISH_ODOM_TF);
 
-  _pnh.param("temperature_warning_threshold", _temperature_warning_threshold, DEFAULT_TEMPERATURE_WARNING_THRESHOLD_IN_CELSIUS);
-  _pnh.param("temperature_error_threshold", _temperature_error_threshold, DEFAULT_TEMPERATURE_ERROR_THRESHOLD_IN_CELSIUS);
+  _pnh.param("monitoring/asic_temperature/major_warning", _temperature_asic_thresholds.major_warning,
+             DEFAULT_ASIC_TEMPERATURE_THRESHOLD_IN_CELSIUS_WARNING_MAJOR);
+  _pnh.param("monitoring/asic_temperature/error", _temperature_asic_thresholds.error, DEFAULT_ASIC_TEMPERATURE_THRESHOLD_IN_CELSIUS_ERROR);
+  _pnh.param("monitoring/ir_emitter_temperature/minor_warning", _temperature_ir_emitter_thresholds.minor_warning,
+             DEFAULT_IR_EMITTER_TEMPERATURE_THRESHOLD_IN_CELSIUS_WARNING_MINOR);
+  _pnh.param("monitoring/ir_emitter_temperature/major_warning", _temperature_ir_emitter_thresholds.major_warning,
+             DEFAULT_IR_EMITTER_TEMPERATURE_THRESHOLD_IN_CELSIUS_WARNING_MAJOR);
+  _pnh.param("monitoring/ir_emitter_temperature/error", _temperature_ir_emitter_thresholds.error,
+             DEFAULT_IR_EMITTER_TEMPERATURE_THRESHOLD_IN_CELSIUS_ERROR);
 }
 
 void BaseRealSenseNode::setupDevice() {
@@ -2677,6 +2687,19 @@ void BaseRealSenseNode::startMonitoring() {
 
   // Start of custom ANYbotics code
   _ir_emitter_diag = std::make_shared<IREmitterDiagnostics>(_serial_no);
+
+  _fault_sensor_value_converters.emplace(
+      std::pair(RS2_OPTION_ASIC_TEMPERATURE, acl::fault_propagation::SensorValueSeverityConverter(
+                                                 acl::fault_propagation::ThresholdType::Upper,
+                                                 {_temperature_asic_thresholds.major_warning, _temperature_asic_thresholds.major_warning},
+                                                 {_temperature_asic_thresholds.error, _temperature_asic_thresholds.error})));
+  _fault_sensor_value_converters.emplace(
+      std::pair(RS2_OPTION_PROJECTOR_TEMPERATURE,
+                acl::fault_propagation::SensorValueSeverityConverter(
+                    acl::fault_propagation::ThresholdType::Upper,
+                    {_temperature_ir_emitter_thresholds.minor_warning, _temperature_ir_emitter_thresholds.minor_warning},
+                    {_temperature_ir_emitter_thresholds.major_warning, _temperature_ir_emitter_thresholds.major_warning},
+                    {_temperature_ir_emitter_thresholds.error, _temperature_ir_emitter_thresholds.error})));
   // End of custom ANYbotics code
 
   int time_interval(1000);
@@ -2706,21 +2729,19 @@ void BaseRealSenseNode::temperature_fault_check() {
     if (sensor.supports(option)) {
       try {
         auto option_value = sensor.get_option(option);
-        if (option_value > _temperature_error_threshold) {
-          _fault_state_collector->update(DepthCameraDeviceFault::HIGH_TEMPERATURE_IR_EMITTER, acl::fault_propagation::Severity::ERROR,
-                                         "Depth Camera Temperature is too high");
-          // Return already: one temperature node check is enough to set a fault.
-          return;
-
-        } else if (option_value > _temperature_warning_threshold) {
-          _fault_state_collector->update(DepthCameraDeviceFault::HIGH_TEMPERATURE_IR_EMITTER, acl::fault_propagation::Severity::WARNING,
-                                         "Depth Camera Temperature is in warning range");
-          // Return already: one temperature node check is enough to set a fault.
-          return;
-        } else {
-          _fault_state_collector->update(DepthCameraDeviceFault::HIGH_TEMPERATURE_IR_EMITTER, acl::fault_propagation::Severity::OK,
-                                         "Depth Camera Temperature is OK");
-        }
+        auto faultSeverity = _fault_sensor_value_converters[option].update(option_value);
+        switch (option) {
+          case RS2_OPTION_ASIC_TEMPERATURE:
+            _fault_state_collector->update(DepthCameraDeviceFault::HIGH_TEMPERATURE_ASIC, faultSeverity,
+                                           "Depth Camera ASIC temperature changed");
+            break;
+          case RS2_OPTION_PROJECTOR_TEMPERATURE:
+            _fault_state_collector->update(DepthCameraDeviceFault::HIGH_TEMPERATURE_IR_EMITTER, faultSeverity,
+                                           "Depth Camera IR emitter temperature changed");
+            break;
+          default:
+            break;
+        };
       } catch (const std::exception& e) {
         ROS_DEBUG_STREAM("Failed checking for temperature." << std::endl << e.what());
       } catch (...) {

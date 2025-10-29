@@ -16,6 +16,7 @@
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <tf/transform_broadcaster.h>
 #include <tf2_ros/static_transform_broadcaster.h>
+#include <acl_fault_propagation/SensorValueSeverityConverter.hpp>
 #include <acl_fault_propagation/StateCollector.hpp>
 
 /** Custom messages and services **/
@@ -33,6 +34,7 @@
 #include <mutex>
 #include <queue>
 #include <thread>
+#include <unordered_map>
 
 using namespace any_realsense2_msgs;
 
@@ -491,23 +493,34 @@ class BaseRealSenseNode : public InterfaceRealSenseNode {
   std::shared_ptr<std::thread> _monitoring_t;
   mutable std::condition_variable _cv;
 
-  // Start of custom ANYbotics code
-  void publish_ir_emitter();
-  std::shared_ptr<IREmitterDiagnostics> _ir_emitter_diag;
-  // End of custom ANYbotics code
-
   stream_index_pair _base_stream;
   const std::string _namespace;
 
+  sensor_msgs::PointCloud2 _msg_pointcloud;
+  std::vector<unsigned int> _valid_pc_indices;
+
+  // Start of custom ANYbotics code
+  struct SensorThresholds {
+    double minor_warning;
+    double major_warning;
+    double error;
+  };
+
+  void publish_ir_emitter();
+  std::shared_ptr<IREmitterDiagnostics> _ir_emitter_diag;
+
   //! Fault propagation
+  SensorThresholds _temperature_asic_thresholds;
+  SensorThresholds _temperature_ir_emitter_thresholds;
+
   std::shared_ptr<StateCollector> _fault_state_collector;
+  std::unordered_map<rs2_option, acl::fault_propagation::SensorValueSeverityConverter> _fault_sensor_value_converters;
 
   // LCSM calibration callbacks
   CalibrationStateCallback calibrationEnterCallback_;
   CalibrationStateCallback calibrationExitCallback_;
 
-  sensor_msgs::PointCloud2 _msg_pointcloud;
-  std::vector<unsigned int> _valid_pc_indices;
+  // End of custom ANYbotics code
 
 };  // end class
 

@@ -68,11 +68,17 @@ const double DEFAULT_FIXED_TIME_OFFSET = 0.0;
 const std::string DEFAULT_TIMESTAMPING_METHOD = "baseline";
 const bool DEFAULT_DISABLE_COLOR_STARTUP = false;
 //* Custom constants.
-// Start of custom ANYbotics code
+
+// Start of custom ANYbotics constants.
 const std::string DEFAULT_FRAME_ID_PREFIX = "camera_";
-const double DEFAULT_TEMPERATURE_WARNING_THRESHOLD_IN_CELSIUS = 45;
-const double DEFAULT_TEMPERATURE_ERROR_THRESHOLD_IN_CELSIUS = 55;
-// End of custom ANYbotics code
+
+const double DEFAULT_ASIC_TEMPERATURE_THRESHOLD_IN_CELSIUS_WARNING_MAJOR = 80.0;
+const double DEFAULT_ASIC_TEMPERATURE_THRESHOLD_IN_CELSIUS_ERROR = 100.0;
+const double DEFAULT_IR_EMITTER_TEMPERATURE_THRESHOLD_IN_CELSIUS_WARNING_MINOR = 55.0;
+const double DEFAULT_IR_EMITTER_TEMPERATURE_THRESHOLD_IN_CELSIUS_WARNING_MAJOR = 58.0;
+const double DEFAULT_IR_EMITTER_TEMPERATURE_THRESHOLD_IN_CELSIUS_ERROR = 60.0;
+// End of custom ANYbotics constants.
+
 const std::string DEFAULT_ODOM_FRAME_ID = "odom_frame";
 const std::string DEFAULT_DEPTH_FRAME_ID = "camera_depth_frame";
 const std::string DEFAULT_INFRA1_FRAME_ID = "camera_infra1_frame";
