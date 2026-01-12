@@ -5,8 +5,8 @@
   <description>Messages for the RealSense Camera package</description>
   <author email="sergey.dorodnicov@intel.com">Sergey Dorodnicov</author>
   <author email="doron.hirshberg@intel.com">Doron Hirshberg</author>
-  <maintainer email="ynava@anybotics.com">Yoshua Nava</maintainer>
-  <maintainer email="mwulf@anybotics.com">Maximilian Wulf</maintainer>
+  <maintainer email="lbergmann@anybotics.com">Lukas Bergmann</maintainer>
+  <maintainer email="dlopez@anybotics.com">Daniel López Madrid</maintainer>
   <license>Apache 2.0</license>
   <url type="website">http://www.ros.org/wiki/RealSense</url>
   <url type="bugtracker">https://github.com/intel-ros/realsense/issues</url>

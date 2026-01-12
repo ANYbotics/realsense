@@ -3,8 +3,8 @@
   <name>any_realsense2_description</name>
   <version>2.2.35</version>
   <description>RealSense Camera description package for Intel 3D D400 cameras</description>
-  <maintainer email="ynava@anybotics.com">Yoshua Nava</maintainer>
-  <maintainer email="mwulf@anybotics.com">Maximilian Wulf</maintainer>
+  <maintainer email="lbergmann@anybotics.com">Lukas Bergmann</maintainer>
+  <maintainer email="dlopez@anybotics.com">Daniel López Madrid</maintainer>
   <license>Apache 2.0</license>
 
   <url type="website">http://www.ros.org/wiki/RealSense</url>
@@ -14,6 +14,6 @@
   <author email="doron.hirshberg@intel.com">Doron Hirshberg</author>
   <buildtool_depend>catkin</buildtool_depend>
   <exec_depend>xacro</exec_depend>
-  
+
   <test_depend>rosunit</test_depend>
 </package>
