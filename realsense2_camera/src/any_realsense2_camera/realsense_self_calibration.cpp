@@ -232,7 +232,6 @@ bool run_self_calibration(rs2::device& dev, float& healthScore, bool applyCalibr
   rs2::config cfg;
   // Note, this is required, otherwise the system picks the first available realsense.
   cfg.enable_device(serial);
-  cfg.enable_stream(RS2_STREAM_INFRARED, 256, 144, RS2_FORMAT_Y8, 90);
   cfg.enable_stream(RS2_STREAM_DEPTH, 256, 144, RS2_FORMAT_Z16, 90);
   rs2::device device{pipe.start(cfg).get_device()};
 
@@ -288,7 +287,6 @@ bool restore_factory_calibration(rs2::device& dev) {
   // Configure device and start streaming.
   rs2::config cfg;
   cfg.enable_device(serial);
-  cfg.enable_stream(RS2_STREAM_INFRARED, 256, 144, RS2_FORMAT_Y8, 90);
   cfg.enable_stream(RS2_STREAM_DEPTH, 256, 144, RS2_FORMAT_Z16, 90);
   rs2::device device{pipe.start(cfg).get_device()};
 

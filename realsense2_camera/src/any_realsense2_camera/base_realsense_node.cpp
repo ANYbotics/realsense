@@ -1584,7 +1584,6 @@ bool BaseRealSenseNode::get_current_calibration_callback(std_srvs::Trigger::Requ
     rs2::config cfg;
     // Note, this is required, otherwise the system picks the first available realsense.
     cfg.enable_device(serial);
-    cfg.enable_stream(RS2_STREAM_INFRARED, 256, 144, RS2_FORMAT_Y8, 90);
     cfg.enable_stream(RS2_STREAM_DEPTH, 256, 144, RS2_FORMAT_Z16, 90);
     rs2::device device{pipe.start(cfg).get_device()};
 
